@@ -27,7 +27,7 @@ TEST_HTML = """
 <html>
 <head><title>Test Portal</title></head>
 <body>
-  <h1 id="title">Welcome to the Test Portal</h1>
+  <h1 id="title">Welcome to the My Portal</h1>
   <form>
     <input id="username" type="text" placeholder="Username" />
     <input id="password" type="password" placeholder="Password" />

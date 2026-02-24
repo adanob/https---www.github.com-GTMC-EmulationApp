@@ -1,6 +1,6 @@
 {
   "target_url": "https://portal.example.com/login",
-  "script_path": "scripts/example_portal.py",
+  "script_path": "scripts/sample_navigation_script.py",
   "tokens": {
     "account_name": "Acme Corp",
     "report_type": "monthly_summary",
@@ -9,8 +9,8 @@
     "file_format": "csv"
   },
   "credentials": {
-    "username": "<encrypted>",
-    "password": "<encrypted>"
+    "username": "dtct1MEHiu17RRqjdy9g/myZEnzW",
+    "password": "cYE91ewXqch6dgjrZCY="
   },
   "s3_output_bucket": "my-emulation-bucket",
   "s3_output_prefix": "results/acme/2026-01/"
