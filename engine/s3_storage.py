@@ -9,8 +9,6 @@ import json
 import os
 from typing import Optional
 
-import boto3
-
 
 class S3Storage:
     """Thin wrapper around boto3 S3 client."""
@@ -21,6 +19,7 @@ class S3Storage:
     @property
     def client(self):
         if self._client is None:
+            import boto3
             self._client = boto3.client("s3")
         return self._client
 
