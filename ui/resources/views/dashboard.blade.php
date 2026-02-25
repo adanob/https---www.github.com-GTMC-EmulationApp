@@ -528,9 +528,15 @@
         <label class="field-label">Path to uv</label>
         <input class="field-input" type="text" name="uv_path"
                value="{{ $settings['uv_path'] ?? '' }}"
-               placeholder="C:\Users\YourName\.local\bin\uv.exe"
+               placeholder="Not detected. Install uv or enter the path manually."
                style="font-family:'Consolas','Courier New',monospace; font-size:13px;">
-        <div class="btn-helper" style="margin-top:4px;text-align:left">Run <code style="color:var(--accent)">where uv</code> in your terminal to find this</div>
+        @if(!empty($settings['uv_path']) && file_exists($settings['uv_path']))
+          <div class="btn-helper ready" style="margin-top:4px;text-align:left">&#x2705; Auto-detected</div>
+        @elseif(!empty($settings['uv_path']))
+          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; Path not found on disk. Check the path or reinstall uv.</div>
+        @else
+          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; Could not auto-detect. Run <code style="color:var(--accent)">where uv</code> in a terminal and paste the path here.</div>
+        @endif
       </div>
 
       <div class="field" style="margin-top:12px">
