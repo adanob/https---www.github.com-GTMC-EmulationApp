@@ -128,13 +128,39 @@
   /* Upload Area */
   .upload-area {
     border:1px dashed var(--border); border-radius:var(--radius); padding:16px;
-    text-align:center; cursor:pointer; transition:all 0.15s; position:relative;
+    text-align:center; cursor:pointer; transition:all 0.15s; position:relative; display:block;
   }
   .upload-area:hover { border-color:var(--accent); background:var(--accent-glow); }
   .upload-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
   .upload-area-icon { font-size:24px; margin-bottom:6px; }
   .upload-area-text { font-size:12px; color:var(--text-muted); }
   .upload-area-text strong { color:var(--text-secondary); }
+
+  /* Token Table */
+  .token-table { width:100%; border-collapse:separate; border-spacing:0; }
+  .token-table th {
+    text-align:left; font-size:11px; font-weight:600; color:var(--text-muted);
+    text-transform:uppercase; letter-spacing:0.5px; padding:0 12px 8px;
+  }
+  .token-table td { padding:0; }
+  .token-table td .field-input {
+    border-radius:0; border-right:none; margin:0;
+    font-family:'Consolas','Courier New',monospace; font-size:13px;
+  }
+  .token-table tr:first-child td:first-child .field-input { border-top-left-radius:var(--radius); }
+  .token-table tr:first-child td:last-child .field-input { border-top-right-radius:var(--radius); border-right:1px solid var(--border); }
+  .token-table tr:last-child td:first-child .field-input { border-bottom-left-radius:var(--radius); }
+  .token-table tr:last-child td:last-child .field-input { border-bottom-right-radius:var(--radius); border-right:1px solid var(--border); }
+  .token-table tr:not(:last-child) td .field-input { border-bottom:none; }
+  .token-table td:last-child .field-input { border-right:1px solid var(--border); }
+  .add-token-btn {
+    display:flex; align-items:center; gap:6px; margin-top:10px;
+    background:transparent; border:1px dashed var(--border); border-radius:var(--radius);
+    color:var(--text-muted); font-size:13px; font-family:inherit;
+    padding:8px 14px; cursor:pointer; transition:all 0.15s; width:100%;
+    justify-content:center;
+  }
+  .add-token-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
   .upload-submit {
     display:block; width:100%; margin-top:10px; padding:8px; font-size:13px; font-weight:600;
     font-family:inherit; background:var(--bg-input); border:1px solid var(--border);
@@ -283,12 +309,18 @@
         <div class="section-header">
           <div class="section-number">3</div>
           <div class="section-title">Data Tokens</div>
-          <div class="section-subtitle">One per line, key:value</div>
+          <div class="section-subtitle">Key-value pairs for the navigation script</div>
         </div>
-        <div class="field">
-          <textarea class="field-textarea" name="tokens"
-                    placeholder="account_name:Acme Corp&#10;report_type:monthly_summary&#10;date_from:2026-01-01&#10;date_to:2026-01-31">{{ old('tokens') }}</textarea>
-        </div>
+        <table class="token-table" id="tokenTable">
+          <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input class="field-input" name="token_keys[]" placeholder="account_name"></td>
+              <td><input class="field-input" name="token_values[]" placeholder="Acme Corp"></td>
+            </tr>
+          </tbody>
+        </table>
+        <button type="button" class="add-token-btn" onclick="addTokenRow()">+ Add Token</button>
       </div>
 
       <div class="divider"></div>
@@ -355,14 +387,14 @@
     <div class="side-title">Upload Payload</div>
     <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="uploadForm">
       @csrf
-      <div class="upload-area" onclick="this.querySelector('input').click()">
-        <input type="file" name="payload_file" accept=".json" onchange="
+      <label class="upload-area" for="payloadFileInput">
+        <input type="file" id="payloadFileInput" name="payload_file" accept=".json" onchange="
           var name = this.files[0] ? this.files[0].name : '';
-          this.closest('.upload-area').querySelector('.upload-area-text').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.json</strong> file or click to browse';
+          document.getElementById('uploadFileName').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.json</strong> file or click to browse';
         ">
         <div class="upload-area-icon">&#x1F4E4;</div>
-        <div class="upload-area-text">Drop a <strong>.json</strong> file or click to browse</div>
-      </div>
+        <div class="upload-area-text" id="uploadFileName">Drop a <strong>.json</strong> file or click to browse</div>
+      </label>
       <button type="submit" class="upload-submit">Upload Payload</button>
     </form>
 
@@ -438,11 +470,51 @@
   </div>
 </div>
 
-<!-- Close modal on overlay click -->
+<!-- Close modal on overlay click + Token table logic -->
 <script>
   document.getElementById('settingsModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
   });
+
+  function addTokenRow() {
+    var tbody = document.querySelector('#tokenTable tbody');
+    var row = document.createElement('tr');
+    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key"></td>'
+                  + '<td><input class="field-input" name="token_values[]" placeholder="value"></td>';
+    tbody.appendChild(row);
+    // Fix border radius: reset all rows then re-apply to first/last
+    refreshTokenBorders();
+    row.querySelector('input').focus();
+  }
+
+  function refreshTokenBorders() {
+    var rows = document.querySelectorAll('#tokenTable tbody tr');
+    rows.forEach(function(r) {
+      r.querySelectorAll('.field-input').forEach(function(inp) {
+        inp.style.borderRadius = '0';
+        inp.style.borderRight = 'none';
+        inp.style.borderBottom = 'none';
+      });
+    });
+    if (rows.length > 0) {
+      var first = rows[0];
+      var last = rows[rows.length - 1];
+      first.querySelector('td:first-child .field-input').style.borderTopLeftRadius = 'var(--radius)';
+      first.querySelector('td:last-child .field-input').style.borderTopRightRadius = 'var(--radius)';
+      first.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
+      last.querySelector('td:first-child .field-input').style.borderBottomLeftRadius = 'var(--radius)';
+      last.querySelector('td:last-child .field-input').style.borderBottomRightRadius = 'var(--radius)';
+      last.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
+      last.querySelectorAll('.field-input').forEach(function(inp) { inp.style.borderBottom = '1px solid var(--border)'; });
+      // Middle rows: just ensure right border on last cell
+      rows.forEach(function(r, i) {
+        if (i > 0 && i < rows.length - 1) {
+          r.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
+        }
+        if (i === rows.length - 1) return;
+      });
+    }
+  }
 </script>
 
 </body>
