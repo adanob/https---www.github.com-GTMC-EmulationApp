@@ -436,43 +436,117 @@ class EmulationController extends Controller
 
     /**
      * Attempt to find the uv binary on the system.
-     * Uses 'where' on Windows, 'which' on Unix.
-     * Also checks common install locations as fallback.
+     *
+     * Strategy (Windows):
+     *   1. 'where uv' (relies on PATH, often fails under Apache)
+     *   2. Resolve the real user home via multiple env vars
+     *   3. Check common install locations under each candidate home
+     *   4. Scan C:\Users\*\.local\bin\uv.exe as a last resort
+     *
+     * Strategy (Unix):
+     *   1. 'which uv'
+     *   2. Check common paths under $HOME
      */
     private function discoverUvPath(): ?string
     {
-        // 1. Try the OS lookup command
-        $command = PHP_OS_FAMILY === 'Windows' ? 'where uv 2>nul' : 'which uv 2>/dev/null';
+        if (PHP_OS_FAMILY === 'Windows') {
+            return $this->discoverUvWindows();
+        }
 
+        return $this->discoverUvUnix();
+    }
+
+    private function discoverUvWindows(): ?string
+    {
+        // 1. Try 'where uv'
         $output = [];
-        $exitCode = -1;
-        @exec($command, $output, $exitCode);
+        @exec('where uv 2>nul', $output, $code);
+        if ($code === 0 && !empty($output[0]) && file_exists(trim($output[0]))) {
+            return trim($output[0]);
+        }
 
-        if ($exitCode === 0 && !empty($output[0])) {
-            $path = trim($output[0]);
+        // 2. Build a list of candidate home directories
+        $homes = array_filter(array_unique([
+            getenv('USERPROFILE'),
+            getenv('HOMEDRIVE') && getenv('HOMEPATH') ? getenv('HOMEDRIVE') . getenv('HOMEPATH') : '',
+            getenv('HOME'),
+        ]));
+
+        // Sub-paths where uv might live
+        $subPaths = [
+            '.local\\bin\\uv.exe',          // Official installer (astral.sh)
+            '.cargo\\bin\\uv.exe',           // Cargo install
+            'AppData\\Local\\uv\\uv.exe',    // Some package managers
+            'AppData\\Roaming\\uv\\uv.exe',
+            'AppData\\Local\\Programs\\uv\\uv.exe',
+            'scoop\\shims\\uv.exe',          // Scoop
+        ];
+
+        foreach ($homes as $home) {
+            foreach ($subPaths as $sub) {
+                $candidate = $home . '\\' . $sub;
+                if (file_exists($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        // 3. Check standalone paths
+        $standalone = [
+            'C:\\Program Files\\uv\\uv.exe',
+            'C:\\Program Files (x86)\\uv\\uv.exe',
+        ];
+
+        foreach ($standalone as $path) {
             if (file_exists($path)) {
                 return $path;
             }
         }
 
-        // 2. Check common install locations
-        $candidates = PHP_OS_FAMILY === 'Windows'
-            ? [
-                getenv('USERPROFILE') . '\\.local\\bin\\uv.exe',
-                getenv('USERPROFILE') . '\\.cargo\\bin\\uv.exe',
-                getenv('LOCALAPPDATA') . '\\uv\\uv.exe',
-                'C:\\Users\\' . getenv('USERNAME') . '\\.local\\bin\\uv.exe',
-            ]
-            : [
-                getenv('HOME') . '/.local/bin/uv',
-                getenv('HOME') . '/.cargo/bin/uv',
-                '/usr/local/bin/uv',
-                '/usr/bin/uv',
-            ];
+        // 4. Scan all user profiles as last resort (Apache often runs as SYSTEM)
+        $usersDir = 'C:\\Users';
+        if (is_dir($usersDir)) {
+            $dirs = @scandir($usersDir);
+            if ($dirs) {
+                foreach ($dirs as $dir) {
+                    if ($dir === '.' || $dir === '..' || $dir === 'Public' || $dir === 'Default') {
+                        continue;
+                    }
 
-        foreach ($candidates as $candidate) {
-            if ($candidate && file_exists($candidate)) {
-                return $candidate;
+                    foreach ($subPaths as $sub) {
+                        $candidate = $usersDir . '\\' . $dir . '\\' . $sub;
+                        if (file_exists($candidate)) {
+                            return $candidate;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function discoverUvUnix(): ?string
+    {
+        $output = [];
+        @exec('which uv 2>/dev/null', $output, $code);
+        if ($code === 0 && !empty($output[0]) && file_exists(trim($output[0]))) {
+            return trim($output[0]);
+        }
+
+        $home = getenv('HOME') ?: (getenv('SUDO_USER') ? '/home/' . getenv('SUDO_USER') : '');
+
+        $candidates = array_filter([
+            $home ? $home . '/.local/bin/uv' : null,
+            $home ? $home . '/.cargo/bin/uv' : null,
+            '/usr/local/bin/uv',
+            '/usr/bin/uv',
+            '/opt/homebrew/bin/uv',
+        ]);
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path;
             }
         }
 
