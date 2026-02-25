@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\Process;
 
 class EmulationController extends Controller
 {
-    /**
-     * Path to the EmulationApp root (where engine/ and payloads/ live).
-     * Set in config/emulation.php
-     */
     private string $appRoot;
     private string $payloadsDir;
     private string $scriptsDir;
@@ -30,8 +26,9 @@ class EmulationController extends Controller
     {
         $payloads = $this->listPayloads();
         $scripts  = $this->listScripts();
+        $settings = $this->loadSettings();
 
-        return view('dashboard', compact('payloads', 'scripts'));
+        return view('dashboard', compact('payloads', 'scripts', 'settings'));
     }
 
     /**
@@ -50,7 +47,6 @@ class EmulationController extends Controller
             'payload_name'     => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
         ]);
 
-        // Build credentials (encrypt via Python engine)
         $credentials = null;
         if (!empty($validated['username']) && !empty($validated['password'])) {
             $credentials = $this->encryptCredentials(
@@ -65,10 +61,8 @@ class EmulationController extends Controller
             }
         }
 
-        // Parse tokens from the form (key:value per line)
         $tokens = $this->parseTokens($validated['tokens'] ?? '');
 
-        // Build the payload
         $payload = [
             'target_url'       => $validated['target_url'],
             'script_path'      => $validated['script_path'],
@@ -78,17 +72,48 @@ class EmulationController extends Controller
             's3_output_prefix' => $validated['s3_output_prefix'] ?? null,
         ];
 
-        // Remove null values
         $payload = array_filter($payload, fn($v) => $v !== null);
 
-        // Write to payloads/ directory
         $filename = $validated['payload_name'] . '.json';
         $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $filename;
 
         file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        return redirect('/')
-            ->with('success', "Payload saved: {$filename}");
+        return redirect('/')->with('success', "Payload saved: {$filename}");
+    }
+
+    /**
+     * POST /payload/upload - Upload an existing payload JSON file.
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'payload_file' => 'required|file|mimes:json,txt|max:512',
+        ]);
+
+        $file = $request->file('payload_file');
+        $contents = file_get_contents($file->getRealPath());
+
+        // Validate it is valid JSON
+        $decoded = json_decode($contents, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return back()->withErrors(['payload_file' => 'Invalid JSON file.']);
+        }
+
+        // Validate it has a target_url at minimum
+        if (empty($decoded['target_url'])) {
+            return back()->withErrors(['payload_file' => 'Payload must contain a target_url field.']);
+        }
+
+        // Use original filename (sanitized)
+        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $name = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name);
+        $filename = $name . '.json';
+
+        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $filename;
+        file_put_contents($filepath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return redirect('/')->with('success', "Payload uploaded: {$filename}");
     }
 
     /**
@@ -121,19 +146,66 @@ class EmulationController extends Controller
         return redirect('/')->with('success', "Payload deleted: {$name}.json");
     }
 
-    // ----------------------------------------------------------------
-    //  Encryption - calls the Python CredentialManager via uv
-    // ----------------------------------------------------------------
+    /**
+     * POST /payload/{name}/run - Execute a payload via runner.py.
+     */
+    public function run(string $name)
+    {
+        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $name . '.json';
+
+        if (!file_exists($filepath)) {
+            return back()->withErrors(['run' => "Payload not found: {$name}.json"]);
+        }
+
+        $relativePath = 'payloads/' . $name . '.json';
+
+        try {
+            $result = Process::path($this->appRoot)
+                ->timeout(300)
+                ->run(['uv', 'run', 'python', 'run.py', $relativePath]);
+
+            $output = $result->output();
+            $error  = $result->errorOutput();
+
+            if ($result->successful()) {
+                return redirect('/')
+                    ->with('success', "Job completed: {$name}.json")
+                    ->with('run_output', $output);
+            } else {
+                return redirect('/')
+                    ->withErrors(['run' => "Job failed: {$name}.json"])
+                    ->with('run_output', $output . "\n" . $error);
+            }
+
+        } catch (\Exception $e) {
+            return redirect('/')
+                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage()]);
+        }
+    }
 
     /**
-     * Encrypt username and password using the Python engine.
-     *
-     * Shells out to: uv run python -c "..."
-     * The CredentialManager uses the .emulation_key file in the project root.
+     * POST /settings - Save configuration.
      */
+    public function saveSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'driver'           => 'required|in:selenium,playwright',
+            's3_output_bucket' => 'nullable|string',
+            's3_output_prefix' => 'nullable|string',
+        ]);
+
+        $settingsPath = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_settings.json';
+        file_put_contents($settingsPath, json_encode($validated, JSON_PRETTY_PRINT));
+
+        return redirect('/')->with('success', 'Settings saved.');
+    }
+
+    // ----------------------------------------------------------------
+    //  Encryption
+    // ----------------------------------------------------------------
+
     private function encryptCredentials(string $username, string $password): ?array
     {
-        // Escape for Python string literal
         $escapedUser = str_replace(["\\", '"'], ["\\\\", '\\"'], $username);
         $escapedPass = str_replace(["\\", '"'], ["\\\\", '\\"'], $password);
 
@@ -174,9 +246,6 @@ class EmulationController extends Controller
     //  Helpers
     // ----------------------------------------------------------------
 
-    /**
-     * Parse token text (one per line, key:value format) into an assoc array.
-     */
     private function parseTokens(string $raw): array
     {
         $tokens = [];
@@ -192,21 +261,33 @@ class EmulationController extends Controller
         return $tokens;
     }
 
-    /**
-     * List all .json files in the payloads/ directory.
-     */
     private function listPayloads(): array
     {
         $files = glob($this->payloadsDir . DIRECTORY_SEPARATOR . '*.json');
         return array_map(fn($f) => basename($f, '.json'), $files ?: []);
     }
 
-    /**
-     * List all .py files in the scripts/ directory.
-     */
     private function listScripts(): array
     {
         $files = glob($this->scriptsDir . DIRECTORY_SEPARATOR . '*.py');
         return array_map(fn($f) => 'scripts/' . basename($f), $files ?: []);
+    }
+
+    private function loadSettings(): array
+    {
+        $settingsPath = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_settings.json';
+
+        if (file_exists($settingsPath)) {
+            $decoded = json_decode(file_get_contents($settingsPath), true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [
+            'driver'           => 'selenium',
+            's3_output_bucket' => '',
+            's3_output_prefix' => '',
+        ];
     }
 }
