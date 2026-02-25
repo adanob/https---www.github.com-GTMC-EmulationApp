@@ -2,7 +2,7 @@
 run.py - Main entry point for EmulationApp.
 
 Usage:
-    uv run python run.py payloads/sample_payload.json
+    uv run python run.py jobs/sample_payload.json
 
 This is what the Dashboard calls when the user presses "Run Job".
 The encryption key is managed in .emulation_key (generated on first use).
@@ -16,7 +16,7 @@ def main():
     if len(sys.argv) < 2:
         print("EmulationApp")
         print("Usage:  uv run python run.py <payload.json>")
-        print("        uv run python run.py payloads/sample_payload.json")
+        print("        uv run python run.py jobs/sample_payload.json")
         sys.exit(0)
 
     filepath = sys.argv[1]
