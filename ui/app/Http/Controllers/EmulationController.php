@@ -32,22 +32,24 @@ class EmulationController extends Controller
     }
 
     /**
-     * POST /payload - Create a new payload with encrypted credentials.
+     * POST /payload - Save a job configuration with encrypted credentials.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'target_url'       => 'required|url',
-            'username'         => 'nullable|string',
-            'password'         => 'nullable|string',
-            'script_path'      => 'required|string',
-            'token_keys'       => 'nullable|array',
-            'token_keys.*'     => 'nullable|string',
-            'token_values'     => 'nullable|array',
-            'token_values.*'   => 'nullable|string',
-            's3_output_bucket' => 'nullable|string',
-            's3_output_prefix' => 'nullable|string',
-            'payload_name'     => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
+            'target_url'        => 'required|url',
+            'username'          => 'nullable|string',
+            'password'          => 'nullable|string',
+            'script_path'       => 'nullable|string',
+            'script_mode'       => 'nullable|in:pagecast,existing',
+            'needs_developer'   => 'nullable',
+            'token_keys'        => 'nullable|array',
+            'token_keys.*'      => 'nullable|string',
+            'token_values'      => 'nullable|array',
+            'token_values.*'    => 'nullable|string',
+            's3_output_bucket'  => 'nullable|string',
+            's3_output_prefix'  => 'nullable|string',
+            'payload_name'      => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
         ]);
 
         $credentials = null;
@@ -60,7 +62,7 @@ class EmulationController extends Controller
             if ($credentials === null) {
                 return back()
                     ->withInput()
-                    ->withErrors(['credentials' => 'Encryption failed. Check Python/uv installation.']);
+                    ->withErrors(['credentials' => 'Encryption failed. Check uv path in Settings.']);
             }
         }
 
@@ -69,16 +71,31 @@ class EmulationController extends Controller
             $validated['token_values'] ?? []
         );
 
+        $needsDeveloper = !empty($validated['needs_developer']);
+        $scriptMode     = $validated['script_mode'] ?? '';
+
+        // Determine the status of the configuration
+        $status = 'ready';
+        if ($needsDeveloper) {
+            $status = 'needs_developer';
+        } elseif ($scriptMode === 'pagecast') {
+            $status = 'needs_recording';
+        } elseif (empty($validated['script_path'])) {
+            $status = 'needs_script';
+        }
+
         $payload = [
             'target_url'       => $validated['target_url'],
-            'script_path'      => $validated['script_path'],
+            'script_path'      => $validated['script_path'] ?? null,
+            'script_mode'      => $scriptMode,
+            'status'           => $status,
             'tokens'           => (object) $tokens,
             'credentials'      => $credentials,
             's3_output_bucket' => $validated['s3_output_bucket'] ?? null,
             's3_output_prefix' => $validated['s3_output_prefix'] ?? null,
         ];
 
-        $payload = array_filter($payload, fn($v) => $v !== null);
+        $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
 
         $filename = $validated['payload_name'] . '.json';
         $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $filename;
@@ -86,11 +103,18 @@ class EmulationController extends Controller
         file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         // If "Run Job" was clicked, save then immediately execute
-        if ($request->input('action') === 'save_and_run') {
+        if ($request->input('action') === 'save_and_run' && $status === 'ready') {
             return $this->run($validated['payload_name']);
         }
 
-        return redirect('/')->with('success', "Payload saved: {$filename}");
+        $message = match($status) {
+            'needs_developer'  => "Configuration saved: {$filename}. Share this file with your developer.",
+            'needs_recording'  => "Configuration saved: {$filename}. Record your navigation with PageCast to complete setup.",
+            'needs_script'     => "Configuration saved: {$filename}. A navigation script is still needed.",
+            default            => "Configuration saved: {$filename}",
+        };
+
+        return redirect('/')->with('success', $message);
     }
 
     /**
