@@ -53,25 +53,54 @@ class CredentialManager:
 
     def encrypt(self, plaintext: str) -> str:
         """Encrypt a plaintext string and return a base64 token."""
-        try:
-            from pyaes import AESModeOfOperationCTR
-        except ImportError:
-            raise ImportError("Install pyaes: run uv sync")
-
-        aes = AESModeOfOperationCTR(self._padded_key())
-        cipher = aes.encrypt(plaintext.encode("utf-8"))
+        enc_func = self._get_ctr_encrypt()
+        cipher = enc_func(plaintext.encode("utf-8"))
         return base64.b64encode(cipher).decode("utf-8")
 
     def decrypt(self, token: str) -> str:
         """Decrypt a base64 token back to plaintext."""
+        dec_func = self._get_ctr_decrypt()
+        raw = base64.b64decode(token)
+        return dec_func(raw).decode("utf-8")
+
+    # -- AES-CTR backend selection ---------------------------------
+
+    def _get_ctr_encrypt(self):
+        """Return an encrypt(bytes)->bytes callable using the best available backend."""
         try:
             from pyaes import AESModeOfOperationCTR
+            aes = AESModeOfOperationCTR(self._padded_key())
+            return aes.encrypt
         except ImportError:
-            raise ImportError("Install pyaes: run uv sync")
+            pass
 
-        raw = base64.b64decode(token)
-        aes = AESModeOfOperationCTR(self._padded_key())
-        return aes.decrypt(raw).decode("utf-8")
+        # Fallback: cryptography library (stdlib on many systems)
+        try:
+            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+            nonce = b'\x00' * 16  # deterministic CTR nonce (matches pyaes default)
+            cipher = Cipher(algorithms.AES(self._padded_key()), modes.CTR(nonce))
+            encryptor = cipher.encryptor()
+            return lambda data: encryptor.update(data) + encryptor.finalize()
+        except ImportError:
+            raise ImportError("Install pyaes or cryptography: run uv sync")
+
+    def _get_ctr_decrypt(self):
+        """Return a decrypt(bytes)->bytes callable using the best available backend."""
+        try:
+            from pyaes import AESModeOfOperationCTR
+            aes = AESModeOfOperationCTR(self._padded_key())
+            return aes.decrypt
+        except ImportError:
+            pass
+
+        try:
+            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+            nonce = b'\x00' * 16
+            cipher = Cipher(algorithms.AES(self._padded_key()), modes.CTR(nonce))
+            decryptor = cipher.decryptor()
+            return lambda data: decryptor.update(data) + decryptor.finalize()
+        except ImportError:
+            raise ImportError("Install pyaes or cryptography: run uv sync")
 
     def encrypt_credentials(self, username: str, password: str) -> Dict[str, str]:
         """Return an encrypted credential pair ready for payload injection."""
