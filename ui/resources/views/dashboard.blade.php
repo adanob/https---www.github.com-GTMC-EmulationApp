@@ -480,7 +480,7 @@
             </select>
           </div>
           @if(count($scripts) === 0)
-            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found in scripts/ folder.</div>
+            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found in jobs/ folder.</div>
           @endif
         </div>
 
@@ -496,7 +496,7 @@
           <div class="developer-msg-icon">&#x1F6E0;&#xFE0F;</div>
           <div class="developer-msg-body">
             <strong>Developer assistance requested</strong><br>
-            Save your configuration, then share the generated JSON file with your developer. They will write the navigation script and add it to the scripts/ folder.
+            Save your configuration, then share the generated JSON file with your developer. They will write the navigation script and add it to the jobs/ folder.
           </div>
         </div>
 
@@ -543,7 +543,7 @@
           </button>
         </div>
         <div class="btn-helpers">
-          <span class="btn-helper" id="saveHelper">Saves your job configuration to payloads/</span>
+          <span class="btn-helper" id="saveHelper">Saves your job configuration to jobs/</span>
           <span class="btn-helper" id="runJobHelper">Select a navigation script to enable</span>
         </div>
       </div>
@@ -595,7 +595,7 @@
         </div>
       </div>
     @empty
-      <div class="empty-state">No payloads yet. Create one using the form or upload a file.</div>
+      <div class="empty-state">No jobs yet. Create one using the form or upload a file.</div>
     @endforelse
 
     <div class="side-divider"></div>
@@ -800,7 +800,7 @@
       btn.disabled = true;
       helper.textContent = 'Record your navigation with PageCast first';
       helper.className = 'btn-helper warning';
-      saveHelper.textContent = 'Saves your job configuration to payloads/';
+      saveHelper.textContent = 'Saves your job configuration to jobs/';
       saveHelper.className = 'btn-helper';
       return;
     }
@@ -822,7 +822,7 @@
       helper.className = 'btn-helper ready';
     }
 
-    saveHelper.textContent = 'Saves your job configuration to payloads/';
+    saveHelper.textContent = 'Saves your job configuration to jobs/';
     saveHelper.className = 'btn-helper';
   }
 
