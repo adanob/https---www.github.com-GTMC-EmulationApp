@@ -17,7 +17,7 @@ The navigation script is the sole authority.
 Usage:
     from engine import EmulationEngine
     engine = EmulationEngine()
-    result = engine.run_from_file("payloads/my_job.json")
+    result = engine.run_from_file("jobs/my_job.json")
 """
 
 import glob
@@ -78,7 +78,10 @@ class EmulationEngine:
     def run_from_file(self, filepath: str) -> dict:
         """Load a local JSON file and execute it."""
         with open(filepath) as f:
-            return self.run_from_json(f.read())
+            payload = Payload.from_json(f.read())
+        # Pass the payload's directory so co-located scripts can be found
+        payload._source_dir = os.path.dirname(os.path.abspath(filepath))
+        return self.run(payload)
 
     # -- Internal: main execution loop ----------------------------
 
@@ -181,10 +184,13 @@ class EmulationEngine:
         Resolve the navigation script to a local file path.
 
         script_path can be:
-          - A local file path:  "scripts/my_script.py"
+          - A filename:         "my_script.py"       (co-located in jobs/)
+          - A relative path:    "jobs/my_script.py"  (from project root)
           - An S3 reference:    "s3://bucket-name/path/to/script.py"
 
-        If S3, the script is downloaded to the job's working directory.
+        Resolution order for local paths:
+          1. Exact path as given (absolute or relative to cwd)
+          2. Co-located with the payload file (same directory)
         """
         script_path = payload.script_path
 
@@ -206,11 +212,23 @@ class EmulationEngine:
             return local_path
 
         else:
-            # Local file path
-            if not os.path.exists(script_path):
-                raise FileNotFoundError(f"Navigation script not found: {script_path}")
-            logger.info("Script loaded", os.path.basename(script_path))
-            return script_path
+            # Try exact path first
+            if os.path.exists(script_path):
+                logger.info("Script loaded", os.path.basename(script_path))
+                return os.path.abspath(script_path)
+
+            # Try co-located with the payload file (jobs/ directory)
+            source_dir = getattr(payload, '_source_dir', None)
+            if source_dir:
+                co_located = os.path.join(source_dir, os.path.basename(script_path))
+                if os.path.exists(co_located):
+                    logger.info("Script loaded (co-located)", os.path.basename(co_located))
+                    return co_located
+
+            raise FileNotFoundError(
+                f"Navigation script not found: {script_path}"
+                + (f" (also checked {source_dir})" if source_dir else "")
+            )
 
     # -- Internal: script execution -------------------------------
 
