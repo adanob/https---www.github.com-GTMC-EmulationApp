@@ -444,7 +444,7 @@
         <div class="upload-area-text" id="uploadFileName">Drop a <strong>.json</strong> file or click to browse</div>
       </label>
       <button type="submit" class="upload-submit">Upload Payload</button>
-      <div class="btn-helper" style="margin-top:4px">Load an existing payload JSON into the dashboard</div>
+      <div class="btn-helper" style="margin-top:4px">Load an existing navigation script into the dashboard</div>
     </form>
 
     <div class="side-divider"></div>
@@ -525,6 +525,15 @@
       @csrf
 
       <div class="field">
+        <label class="field-label">Path to uv</label>
+        <input class="field-input" type="text" name="uv_path"
+               value="{{ $settings['uv_path'] ?? '' }}"
+               placeholder="C:\Users\YourName\.local\bin\uv.exe"
+               style="font-family:'Consolas','Courier New',monospace; font-size:13px;">
+        <div class="btn-helper" style="margin-top:4px;text-align:left">Run <code style="color:var(--accent)">where uv</code> in your terminal to find this</div>
+      </div>
+
+      <div class="field" style="margin-top:12px">
         <label class="field-label">Browser Driver</label>
         <select class="field-select" name="driver">
           <option value="selenium" {{ ($settings['driver'] ?? 'selenium') === 'selenium' ? 'selected' : '' }}>Selenium (Chrome)</option>
