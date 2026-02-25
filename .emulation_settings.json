@@ -1,0 +1,5 @@
+{
+    "driver": "selenium",
+    "s3_output_bucket": "dev",
+    "s3_output_prefix": "HOLD"
+}
