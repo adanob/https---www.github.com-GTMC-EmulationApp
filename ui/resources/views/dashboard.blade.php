@@ -211,6 +211,19 @@
   }
   .modal-btn:hover { background:#8186FF; }
 
+  /* uv Install Help */
+  .uv-install-help { margin-top:8px; }
+  .install-steps {
+    margin-top:8px; padding:12px; background:var(--bg-primary);
+    border:1px solid var(--border); border-radius:var(--radius);
+  }
+  .install-step-label { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
+  .install-cmd {
+    display:block; padding:8px 10px; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:6px; font-family:'Consolas','Courier New',monospace; font-size:12px;
+    color:var(--green); word-break:break-all; user-select:all; cursor:text;
+  }
+
   /* Job Log */
   .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
   .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
@@ -528,14 +541,22 @@
         <label class="field-label">Path to uv</label>
         <input class="field-input" type="text" name="uv_path"
                value="{{ $settings['uv_path'] ?? '' }}"
-               placeholder="Not detected. Install uv or enter the path manually."
+               placeholder="Not detected"
                style="font-family:'Consolas','Courier New',monospace; font-size:13px;">
         @if(!empty($settings['uv_path']) && file_exists($settings['uv_path']))
-          <div class="btn-helper ready" style="margin-top:4px;text-align:left">&#x2705; Auto-detected</div>
+          <div class="btn-helper ready" style="margin-top:4px;text-align:left">&#x2705; Detected at {{ $settings['uv_path'] }}</div>
         @elseif(!empty($settings['uv_path']))
-          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; Path not found on disk. Check the path or reinstall uv.</div>
+          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; File not found at this path. Reinstall or correct the path below.</div>
         @else
-          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; Could not auto-detect. Run <code style="color:var(--accent)">where uv</code> in a terminal and paste the path here.</div>
+          <div class="uv-install-help">
+            <div class="btn-helper warning" style="text-align:left">&#x26A0;&#xFE0F; uv not found. Install it, then refresh this page.</div>
+            <div class="install-steps">
+              <div class="install-step-label">Open PowerShell and run:</div>
+              <code class="install-cmd">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
+              <div class="install-step-label" style="margin-top:8px">This installs uv to:</div>
+              <code class="install-cmd">C:\Users\&lt;you&gt;\.local\bin\uv.exe</code>
+            </div>
+          </div>
         @endif
       </div>
 
