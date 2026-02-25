@@ -85,6 +85,11 @@ class EmulationController extends Controller
 
         file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
+        // If "Run Job" was clicked, save then immediately execute
+        if ($request->input('action') === 'save_and_run') {
+            return $this->run($validated['payload_name']);
+        }
+
         return redirect('/')->with('success', "Payload saved: {$filename}");
     }
 
@@ -166,26 +171,38 @@ class EmulationController extends Controller
         $relativePath = 'payloads/' . $name . '.json';
 
         try {
+            $startTime = microtime(true);
+
             $result = Process::path($this->appRoot)
                 ->timeout(300)
                 ->run(['uv', 'run', 'python', 'run.py', $relativePath]);
 
-            $output = $result->output();
-            $error  = $result->errorOutput();
+            $elapsed = round(microtime(true) - $startTime);
+            $output  = $result->output() . "\n" . $result->errorOutput();
+            $success = $result->successful();
 
-            if ($result->successful()) {
-                return redirect('/')
-                    ->with('success', "Job completed: {$name}.json")
-                    ->with('run_output', $output);
-            } else {
-                return redirect('/')
-                    ->withErrors(['run' => "Job failed: {$name}.json"])
-                    ->with('run_output', $output . "\n" . $error);
-            }
+            $logEntries  = $this->parseLogOutput($output);
+            $statusText  = $success
+                ? "Job completed successfully - {$elapsed} seconds"
+                : "Job failed after {$elapsed} seconds";
+
+            return redirect('/')
+                ->with('success', $success ? "Job completed: {$name}.json" : null)
+                ->withErrors($success ? [] : ['run' => "Job failed: {$name}.json"])
+                ->with('job_log', $logEntries)
+                ->with('job_success', $success)
+                ->with('job_status_text', $statusText);
 
         } catch (\Exception $e) {
             return redirect('/')
-                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage()]);
+                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage()])
+                ->with('job_log', [[
+                    'time'  => now()->format('H:i:s'),
+                    'icon'  => '&#x274C;',
+                    'html'  => '<strong>Failed to start</strong> ' . e($e->getMessage()),
+                ]])
+                ->with('job_success', false)
+                ->with('job_status_text', 'Job could not be started');
         }
     }
 
@@ -251,6 +268,91 @@ class EmulationController extends Controller
     // ----------------------------------------------------------------
     //  Helpers
     // ----------------------------------------------------------------
+
+    /**
+     * Parse console output from runner.py into structured log entries.
+     * Format: "    [HH:MM:SS.mmm] message  |  detail"
+     */
+    private function parseLogOutput(string $output): array
+    {
+        $entries = [];
+        $lines = explode("\n", $output);
+
+        // Icon map: keyword => emoji
+        $iconMap = [
+            'payload'     => '&#x1F4C4;',
+            'credential'  => '&#x1F513;',
+            'decrypt'     => '&#x1F513;',
+            'encrypt'     => '&#x1F512;',
+            'browser'     => '&#x1F310;',
+            'navigat'     => '&#x1F4CA;',
+            'login'       => '&#x1F511;',
+            'download'    => '&#x2B07;&#xFE0F;',
+            'screenshot'  => '&#x1F4F7;',
+            'upload'      => '&#x2601;&#xFE0F;',
+            'cleanup'     => '&#x1F9F9;',
+            'closed'      => '&#x1F9F9;',
+            'success'     => '&#x2705;',
+            'complete'    => '&#x2705;',
+            'error'       => '&#x274C;',
+            'fail'        => '&#x274C;',
+            'warn'        => '&#x26A0;&#xFE0F;',
+            'date'        => '&#x1F4C5;',
+            'report'      => '&#x1F4CA;',
+            'script'      => '&#x1F4DD;',
+        ];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Match logger format: [HH:MM:SS.mmm] message  |  detail
+            if (preg_match('/^\[(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\]\s*(.+)$/', $line, $m)) {
+                $time    = substr($m[1], 0, 8); // HH:MM:SS
+                $content = $m[2];
+
+                // Split on " | " for detail
+                $parts   = preg_split('/\s+\|\s+/', $content, 2);
+                $message = $parts[0];
+                $detail  = $parts[1] ?? '';
+
+                // Strip log level prefix like [INFO ] or [OK   ]
+                $message = preg_replace('/^\[\w+\s*\]\s*/', '', $message);
+
+                // Pick icon
+                $icon = '&#x25CF;'; // default dot
+                $lower = strtolower($message . ' ' . $detail);
+                foreach ($iconMap as $keyword => $emoji) {
+                    if (str_contains($lower, $keyword)) {
+                        $icon = $emoji;
+                        break;
+                    }
+                }
+
+                // Build HTML: bold the message, detail in normal weight
+                $html = '<strong>' . e($message) . '</strong>';
+                if ($detail) {
+                    $html .= ' ' . e($detail);
+                }
+
+                $entries[] = [
+                    'time' => $time,
+                    'icon' => $icon,
+                    'html' => $html,
+                ];
+            }
+        }
+
+        // If no structured lines found, show raw output as single entry
+        if (empty($entries) && trim($output) !== '') {
+            $entries[] = [
+                'time' => now()->format('H:i:s'),
+                'icon' => '&#x1F4DD;',
+                'html' => '<strong>Output</strong> <br>' . nl2br(e(trim($output))),
+            ];
+        }
+
+        return $entries;
+    }
 
     private function parseTokenArrays(array $keys, array $values): array
     {
