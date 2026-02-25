@@ -13,8 +13,8 @@ class EmulationController extends Controller
 
     public function __construct()
     {
-        $this->appRoot = config('emulation.app_root');
-        $this->jobsDir = config('emulation.jobs_dir');
+        $this->appRoot = config('emulation.app_root') ?? base_path('../');
+        $this->jobsDir = config('emulation.jobs_dir') ?? base_path('../jobs');
     }
 
     /**
