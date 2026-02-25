@@ -9,14 +9,12 @@ use Illuminate\Support\Facades\Process;
 class EmulationController extends Controller
 {
     private string $appRoot;
-    private string $payloadsDir;
-    private string $scriptsDir;
+    private string $jobsDir;
 
     public function __construct()
     {
-        $this->appRoot     = config('emulation.app_root');
-        $this->payloadsDir = config('emulation.payloads_dir');
-        $this->scriptsDir  = config('emulation.scripts_dir');
+        $this->appRoot = config('emulation.app_root');
+        $this->jobsDir = config('emulation.jobs_dir');
     }
 
     /**
@@ -98,7 +96,7 @@ class EmulationController extends Controller
         $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
 
         $filename = $validated['payload_name'] . '.json';
-        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $filename;
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
 
         file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
@@ -145,7 +143,7 @@ class EmulationController extends Controller
         $name = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name);
         $filename = $name . '.json';
 
-        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $filename;
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
         file_put_contents($filepath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         return redirect('/')->with('success', "Payload uploaded: {$filename}");
@@ -156,7 +154,7 @@ class EmulationController extends Controller
      */
     public function show(string $name)
     {
-        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $name . '.json';
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
 
         if (!file_exists($filepath)) {
             abort(404, 'Payload not found.');
@@ -172,7 +170,7 @@ class EmulationController extends Controller
      */
     public function destroy(string $name)
     {
-        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $name . '.json';
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
 
         if (file_exists($filepath)) {
             unlink($filepath);
@@ -186,13 +184,13 @@ class EmulationController extends Controller
      */
     public function run(string $name)
     {
-        $filepath = $this->payloadsDir . DIRECTORY_SEPARATOR . $name . '.json';
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
 
         if (!file_exists($filepath)) {
             return back()->withErrors(['run' => "Payload not found: {$name}.json"]);
         }
 
-        $relativePath = 'payloads/' . $name . '.json';
+        $relativePath = 'jobs/' . $name . '.json';
 
         try {
             $startTime = microtime(true);
@@ -411,14 +409,14 @@ class EmulationController extends Controller
 
     private function listPayloads(): array
     {
-        $files = glob($this->payloadsDir . DIRECTORY_SEPARATOR . '*.json');
+        $files = glob($this->jobsDir . DIRECTORY_SEPARATOR . '*.json');
         return array_map(fn($f) => basename($f, '.json'), $files ?: []);
     }
 
     private function listScripts(): array
     {
-        $files = glob($this->scriptsDir . DIRECTORY_SEPARATOR . '*.py');
-        return array_map(fn($f) => 'scripts/' . basename($f), $files ?: []);
+        $files = glob($this->jobsDir . DIRECTORY_SEPARATOR . '*.py');
+        return array_map(fn($f) => basename($f), $files ?: []);
     }
 
     private function loadSettings(): array
