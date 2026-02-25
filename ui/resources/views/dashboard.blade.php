@@ -215,6 +215,7 @@
   .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
   .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
   .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .dot-idle { background:var(--text-muted); }
   .log-entries { display:flex; flex-direction:column; gap:0; }
   .log-entry {
     display:grid; grid-template-columns:64px 24px 1fr; gap:8px; align-items:start;
@@ -430,31 +431,6 @@
   <!-- ═══ SIDE PANEL ═══ -->
   <div class="side-panel">
 
-    <!-- Job Log (shown after a run) -->
-    @if(session('job_log'))
-    <div class="side-title">
-      <span class="log-dot {{ session('job_success') ? 'dot-green' : 'dot-red' }}"></span>
-      Job Log
-    </div>
-
-    <div class="log-entries">
-      @foreach(session('job_log') as $entry)
-        <div class="log-entry">
-          <span class="log-time">{{ $entry['time'] }}</span>
-          <span class="log-icon">{!! $entry['icon'] !!}</span>
-          <span class="log-text">{!! $entry['html'] !!}</span>
-        </div>
-      @endforeach
-    </div>
-
-    <div class="log-status {{ session('job_success') ? 'log-status-ok' : 'log-status-fail' }}">
-      <span class="log-status-icon">{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
-      <span class="log-status-text">{{ session('job_status_text', 'Job finished') }}</span>
-    </div>
-
-    <div class="side-divider"></div>
-    @endif
-
     <!-- Upload Payload -->
     <div class="side-title">Upload Payload</div>
     <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="uploadForm">
@@ -498,6 +474,38 @@
     @empty
       <div class="empty-state">No payloads yet. Create one using the form or upload a file.</div>
     @endforelse
+
+    <div class="side-divider"></div>
+
+    <!-- Job Log -->
+    <div class="side-title">
+      @if(session('job_log'))
+        <span class="log-dot {{ session('job_success') ? 'dot-green' : 'dot-red' }}"></span>
+      @else
+        <span class="log-dot dot-idle"></span>
+      @endif
+      Job Log
+    </div>
+
+    @if(session('job_log'))
+      <div class="log-entries">
+        @foreach(session('job_log') as $entry)
+          <div class="log-entry">
+            <span class="log-time">{{ $entry['time'] }}</span>
+            <span class="log-icon">{!! $entry['icon'] !!}</span>
+            <span class="log-text">{!! $entry['html'] !!}</span>
+          </div>
+        @endforeach
+      </div>
+
+      <div class="log-status {{ session('job_success') ? 'log-status-ok' : 'log-status-fail' }}">
+        <span class="log-status-icon">{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
+        <span class="log-status-text">{{ session('job_status_text', 'Job finished') }}</span>
+      </div>
+    @else
+      <div class="empty-state">Run a payload to see the job log here.</div>
+    @endif
+
   </div>
 </div>
 
