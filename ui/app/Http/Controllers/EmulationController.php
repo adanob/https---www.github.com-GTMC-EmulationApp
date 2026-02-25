@@ -173,9 +173,11 @@ class EmulationController extends Controller
         try {
             $startTime = microtime(true);
 
+            $uv = $this->getUvCommand();
+
             $result = Process::path($this->appRoot)
                 ->timeout(300)
-                ->run(['uv', 'run', 'python', 'run.py', $relativePath]);
+                ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
 
             $elapsed = round(microtime(true) - $startTime);
             $output  = $result->output() . "\n" . $result->errorOutput();
@@ -194,12 +196,16 @@ class EmulationController extends Controller
                 ->with('job_status_text', $statusText);
 
         } catch (\Exception $e) {
+            $hint = str_contains($e->getMessage(), 'cannot find') || str_contains($e->getMessage(), 'not recognized')
+                ? ' Set the full path to uv in Settings (gear icon).'
+                : '';
+
             return redirect('/')
-                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage()])
+                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage() . $hint])
                 ->with('job_log', [[
                     'time'  => now()->format('H:i:s'),
                     'icon'  => '&#x274C;',
-                    'html'  => '<strong>Failed to start</strong> ' . e($e->getMessage()),
+                    'html'  => '<strong>Failed to start</strong> ' . e($e->getMessage() . $hint),
                 ]])
                 ->with('job_success', false)
                 ->with('job_status_text', 'Job could not be started');
@@ -212,6 +218,7 @@ class EmulationController extends Controller
     public function saveSettings(Request $request)
     {
         $validated = $request->validate([
+            'uv_path'          => 'nullable|string',
             'driver'           => 'required|in:selenium,playwright',
             's3_output_bucket' => 'nullable|string',
             's3_output_prefix' => 'nullable|string',
@@ -239,8 +246,10 @@ class EmulationController extends Controller
         );
 
         try {
+            $uv = $this->getUvCommand();
+
             $result = Process::path($this->appRoot)->run([
-                'uv', 'run', 'python', '-c', $pythonCode
+                $uv, 'run', 'python', '-c', $pythonCode
             ]);
 
             if ($result->successful()) {
@@ -394,9 +403,21 @@ class EmulationController extends Controller
         }
 
         return [
+            'uv_path'          => '',
             'driver'           => 'selenium',
             's3_output_bucket' => '',
             's3_output_prefix' => '',
         ];
+    }
+
+    /**
+     * Resolve the full path to the uv executable from settings, or fall back to 'uv'.
+     */
+    private function getUvCommand(): string
+    {
+        $settings = $this->loadSettings();
+        $path = trim($settings['uv_path'] ?? '');
+
+        return $path !== '' ? $path : 'uv';
     }
 }
