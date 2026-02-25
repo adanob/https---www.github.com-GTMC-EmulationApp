@@ -395,19 +395,32 @@ class EmulationController extends Controller
     {
         $settingsPath = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_settings.json';
 
-        if (file_exists($settingsPath)) {
-            $decoded = json_decode(file_get_contents($settingsPath), true);
-            if (is_array($decoded)) {
-                return $decoded;
-            }
-        }
-
-        return [
+        $defaults = [
             'uv_path'          => '',
             'driver'           => 'selenium',
             's3_output_bucket' => '',
             's3_output_prefix' => '',
         ];
+
+        if (file_exists($settingsPath)) {
+            $decoded = json_decode(file_get_contents($settingsPath), true);
+            if (is_array($decoded)) {
+                $defaults = array_merge($defaults, $decoded);
+            }
+        }
+
+        // Auto-discover uv if not set or if the saved path no longer exists
+        if (empty($defaults['uv_path']) || !file_exists($defaults['uv_path'])) {
+            $discovered = $this->discoverUvPath();
+            if ($discovered) {
+                $defaults['uv_path'] = $discovered;
+
+                // Persist so we only discover once
+                file_put_contents($settingsPath, json_encode($defaults, JSON_PRETTY_PRINT));
+            }
+        }
+
+        return $defaults;
     }
 
     /**
@@ -419,5 +432,50 @@ class EmulationController extends Controller
         $path = trim($settings['uv_path'] ?? '');
 
         return $path !== '' ? $path : 'uv';
+    }
+
+    /**
+     * Attempt to find the uv binary on the system.
+     * Uses 'where' on Windows, 'which' on Unix.
+     * Also checks common install locations as fallback.
+     */
+    private function discoverUvPath(): ?string
+    {
+        // 1. Try the OS lookup command
+        $command = PHP_OS_FAMILY === 'Windows' ? 'where uv 2>nul' : 'which uv 2>/dev/null';
+
+        $output = [];
+        $exitCode = -1;
+        @exec($command, $output, $exitCode);
+
+        if ($exitCode === 0 && !empty($output[0])) {
+            $path = trim($output[0]);
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        // 2. Check common install locations
+        $candidates = PHP_OS_FAMILY === 'Windows'
+            ? [
+                getenv('USERPROFILE') . '\\.local\\bin\\uv.exe',
+                getenv('USERPROFILE') . '\\.cargo\\bin\\uv.exe',
+                getenv('LOCALAPPDATA') . '\\uv\\uv.exe',
+                'C:\\Users\\' . getenv('USERNAME') . '\\.local\\bin\\uv.exe',
+            ]
+            : [
+                getenv('HOME') . '/.local/bin/uv',
+                getenv('HOME') . '/.cargo/bin/uv',
+                '/usr/local/bin/uv',
+                '/usr/bin/uv',
+            ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate && file_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }
