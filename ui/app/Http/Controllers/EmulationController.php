@@ -41,7 +41,10 @@ class EmulationController extends Controller
             'username'         => 'nullable|string',
             'password'         => 'nullable|string',
             'script_path'      => 'required|string',
-            'tokens'           => 'nullable|string',
+            'token_keys'       => 'nullable|array',
+            'token_keys.*'     => 'nullable|string',
+            'token_values'     => 'nullable|array',
+            'token_values.*'   => 'nullable|string',
             's3_output_bucket' => 'nullable|string',
             's3_output_prefix' => 'nullable|string',
             'payload_name'     => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
@@ -61,7 +64,10 @@ class EmulationController extends Controller
             }
         }
 
-        $tokens = $this->parseTokens($validated['tokens'] ?? '');
+        $tokens = $this->parseTokenArrays(
+            $validated['token_keys'] ?? [],
+            $validated['token_values'] ?? []
+        );
 
         $payload = [
             'target_url'       => $validated['target_url'],
@@ -246,15 +252,16 @@ class EmulationController extends Controller
     //  Helpers
     // ----------------------------------------------------------------
 
-    private function parseTokens(string $raw): array
+    private function parseTokenArrays(array $keys, array $values): array
     {
         $tokens = [];
-        $lines = array_filter(array_map('trim', explode("\n", $raw)));
 
-        foreach ($lines as $line) {
-            if (str_contains($line, ':')) {
-                [$key, $value] = explode(':', $line, 2);
-                $tokens[trim($key)] = trim($value);
+        foreach ($keys as $i => $key) {
+            $key = trim($key);
+            $value = trim($values[$i] ?? '');
+
+            if ($key !== '') {
+                $tokens[$key] = $value;
             }
         }
 
