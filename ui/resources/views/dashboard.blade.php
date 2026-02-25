@@ -24,6 +24,8 @@
     --red: #F87171;
     --red-bg: rgba(248,113,113,0.08);
     --amber: #FBBF24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --amber-border: rgba(251,191,36,0.3);
     --radius: 10px;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -35,9 +37,19 @@
   .topbar-logo { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#A78BFA); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; }
   .topbar-title { font-size:15px; font-weight:600; }
   .topbar-title span { color:var(--text-muted); font-weight:400; }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .topbar-btn {
+    background:transparent; border:1px solid var(--border); color:var(--text-secondary);
+    padding:6px 12px; border-radius:8px; font-size:13px; font-family:inherit;
+    cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;
+  }
+  .topbar-btn:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-muted); }
+  .topbar-btn svg { width:15px; height:15px; }
+  .gear-btn { width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+  .gear-btn svg { width:18px; height:18px; }
 
   /* Layout */
-  .layout { display:grid; grid-template-columns:1fr 340px; min-height:calc(100vh - 56px); }
+  .layout { display:grid; grid-template-columns:1fr 360px; min-height:calc(100vh - 56px); }
   .main-panel { padding:28px 32px; overflow-y:auto; }
   .side-panel { background:var(--bg-secondary); border-left:1px solid var(--border); padding:24px; overflow-y:auto; }
 
@@ -76,29 +88,32 @@
   .divider { height:1px; background:var(--border); margin:4px 0 16px; }
 
   /* Buttons */
-  .run-btn {
+  .save-btn {
     width:100%; padding:13px; font-size:15px; font-weight:600; font-family:inherit;
     background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
     color:#fff; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 20px rgba(108,114,255,0.3);
   }
-  .run-btn:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
+  .save-btn:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
 
   /* Alerts */
   .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
   .alert-success { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
   .alert-error { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
 
-  /* Side Panel - Payloads */
-  .side-title { font-size:14px; font-weight:600; margin-bottom:14px; }
+  /* Side Panel */
+  .side-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .side-divider { height:1px; background:var(--border); margin:16px 0; }
+
+  /* Payload Items */
   .payload-item {
-    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
     background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
     margin-bottom:6px; font-size:13px; transition:border-color 0.15s;
   }
   .payload-item:hover { border-color:var(--text-muted); }
-  .payload-icon { font-size:16px; }
-  .payload-name { font-family:'Consolas','Courier New',monospace; font-size:12px; flex:1; }
-  .payload-actions { display:flex; gap:6px; }
+  .payload-icon { font-size:14px; }
+  .payload-name { font-family:'Consolas','Courier New',monospace; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .payload-actions { display:flex; gap:4px; flex-shrink:0; }
   .payload-actions a, .payload-actions button {
     font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid var(--border);
     background:transparent; color:var(--text-secondary); cursor:pointer; text-decoration:none;
@@ -106,7 +121,58 @@
   }
   .payload-actions a:hover, .payload-actions button:hover { border-color:var(--accent); color:var(--accent); }
   .payload-actions button.delete-btn:hover { border-color:var(--red); color:var(--red); }
+  .payload-actions button.run-btn-sm { }
+  .payload-actions button.run-btn-sm:hover { border-color:var(--green); color:var(--green); }
   .empty-state { color:var(--text-muted); font-size:13px; padding:20px 0; text-align:center; }
+
+  /* Upload Area */
+  .upload-area {
+    border:1px dashed var(--border); border-radius:var(--radius); padding:16px;
+    text-align:center; cursor:pointer; transition:all 0.15s; position:relative;
+  }
+  .upload-area:hover { border-color:var(--accent); background:var(--accent-glow); }
+  .upload-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .upload-area-icon { font-size:24px; margin-bottom:6px; }
+  .upload-area-text { font-size:12px; color:var(--text-muted); }
+  .upload-area-text strong { color:var(--text-secondary); }
+  .upload-submit {
+    display:block; width:100%; margin-top:10px; padding:8px; font-size:13px; font-weight:600;
+    font-family:inherit; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text-primary); cursor:pointer; transition:all 0.15s;
+  }
+  .upload-submit:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Run Output */
+  .run-output {
+    margin-top:12px; padding:12px; background:var(--bg-primary); border:1px solid var(--border);
+    border-radius:var(--radius); font-family:'Consolas','Courier New',monospace;
+    font-size:11px; color:var(--text-secondary); max-height:200px; overflow-y:auto;
+    white-space:pre-wrap; word-break:break-all;
+  }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    z-index:100; align-items:center; justify-content:center;
+  }
+  .modal-overlay.active { display:flex; }
+  .modal {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+    padding:28px; width:420px; max-width:90vw; box-shadow:0 8px 40px rgba(0,0,0,0.5);
+  }
+  .modal-title { font-size:16px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+  .modal-title svg { width:20px; height:20px; color:var(--text-muted); }
+  .modal-close {
+    margin-left:auto; background:transparent; border:none; color:var(--text-muted);
+    font-size:18px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:all 0.15s;
+  }
+  .modal-close:hover { color:var(--text-primary); background:var(--bg-hover); }
+  .modal-btn {
+    width:100%; padding:11px; font-size:14px; font-weight:600; font-family:inherit;
+    background:var(--accent); border:none; border-radius:var(--radius);
+    color:#fff; cursor:pointer; transition:all 0.15s; margin-top:16px;
+  }
+  .modal-btn:hover { background:#8186FF; }
 
   @media (max-width:900px) {
     .layout { grid-template-columns:1fr; }
@@ -121,12 +187,20 @@
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-logo">E</div>
-    <div class="topbar-title">EmulationApp <span>/ New Payload</span></div>
+    <div class="topbar-title">EmulationApp <span>/ Dashboard</span></div>
+  </div>
+  <div class="topbar-right">
+    <button class="topbar-btn gear-btn" title="Settings" onclick="document.getElementById('settingsModal').classList.add('active')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
   </div>
 </div>
 
 <div class="layout">
-  <!-- Main Panel -->
+  <!-- ═══ MAIN PANEL ═══ -->
   <div class="main-panel">
 
     @if(session('success'))
@@ -139,6 +213,10 @@
           {{ $error }}<br>
         @endforeach
       </div>
+    @endif
+
+    @if(session('run_output'))
+      <div class="run-output">{{ session('run_output') }}</div>
     @endif
 
     <form method="POST" action="{{ route('payload.store') }}">
@@ -264,14 +342,33 @@
 
       <!-- Save -->
       <div class="section">
-        <button type="submit" class="run-btn">Save Payload</button>
+        <button type="submit" class="save-btn">Save Payload</button>
       </div>
 
     </form>
   </div>
 
-  <!-- Side Panel - Saved Payloads -->
+  <!-- ═══ SIDE PANEL ═══ -->
   <div class="side-panel">
+
+    <!-- Upload Payload -->
+    <div class="side-title">Upload Payload</div>
+    <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="uploadForm">
+      @csrf
+      <div class="upload-area" onclick="this.querySelector('input').click()">
+        <input type="file" name="payload_file" accept=".json" onchange="
+          var name = this.files[0] ? this.files[0].name : '';
+          this.closest('.upload-area').querySelector('.upload-area-text').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.json</strong> file or click to browse';
+        ">
+        <div class="upload-area-icon">&#x1F4E4;</div>
+        <div class="upload-area-text">Drop a <strong>.json</strong> file or click to browse</div>
+      </div>
+      <button type="submit" class="upload-submit">Upload Payload</button>
+    </form>
+
+    <div class="side-divider"></div>
+
+    <!-- Saved Payloads -->
     <div class="side-title">Saved Payloads</div>
 
     @forelse($payloads as $payload)
@@ -280,19 +377,73 @@
         <span class="payload-name">{{ $payload }}.json</span>
         <div class="payload-actions">
           <a href="{{ route('payload.show', $payload) }}" target="_blank">View</a>
+          <form method="POST" action="{{ route('payload.run', $payload) }}" style="display:inline"
+                onsubmit="return confirm('Run {{ $payload }}.json?')">
+            @csrf
+            <button type="submit" class="run-btn-sm" title="Run this payload">&#9654;</button>
+          </form>
           <form method="POST" action="{{ route('payload.destroy', $payload) }}" style="display:inline"
                 onsubmit="return confirm('Delete {{ $payload }}.json?')">
             @csrf
             @method('DELETE')
-            <button type="submit" class="delete-btn">Del</button>
+            <button type="submit" class="delete-btn" title="Delete">&#x2715;</button>
           </form>
         </div>
       </div>
     @empty
-      <div class="empty-state">No payloads yet. Create one using the form.</div>
+      <div class="empty-state">No payloads yet. Create one using the form or upload a file.</div>
     @endforelse
   </div>
 </div>
+
+<!-- ═══ SETTINGS MODAL ═══ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      Settings
+      <button class="modal-close" onclick="document.getElementById('settingsModal').classList.remove('active')">&times;</button>
+    </div>
+
+    <form method="POST" action="{{ route('settings.save') }}">
+      @csrf
+
+      <div class="field">
+        <label class="field-label">Browser Driver</label>
+        <select class="field-select" name="driver">
+          <option value="selenium" {{ ($settings['driver'] ?? 'selenium') === 'selenium' ? 'selected' : '' }}>Selenium (Chrome)</option>
+          <option value="playwright" {{ ($settings['driver'] ?? '') === 'playwright' ? 'selected' : '' }}>Playwright (Chromium)</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <label class="field-label">Default S3 Output Bucket</label>
+        <input class="field-input" type="text" name="s3_output_bucket"
+               value="{{ $settings['s3_output_bucket'] ?? '' }}"
+               placeholder="my-emulation-bucket">
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <label class="field-label">Default S3 Output Prefix</label>
+        <input class="field-input" type="text" name="s3_output_prefix"
+               value="{{ $settings['s3_output_prefix'] ?? '' }}"
+               placeholder="results/">
+      </div>
+
+      <button type="submit" class="modal-btn">Save Settings</button>
+    </form>
+  </div>
+</div>
+
+<!-- Close modal on overlay click -->
+<script>
+  document.getElementById('settingsModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+</script>
 
 </body>
 </html>
