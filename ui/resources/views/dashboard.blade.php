@@ -87,13 +87,32 @@
   /* Divider */
   .divider { height:1px; background:var(--border); margin:4px 0 16px; }
 
-  /* Buttons */
+  /* Button Row */
+  .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .save-btn {
-    width:100%; padding:13px; font-size:15px; font-weight:600; font-family:inherit;
+    padding:13px; font-size:14px; font-weight:600; font-family:inherit;
+    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
+    color:var(--text-primary); cursor:pointer; transition:all 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .save-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+  .save-btn svg { flex-shrink:0; }
+  .run-btn {
+    padding:13px; font-size:14px; font-weight:600; font-family:inherit;
     background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
     color:#fff; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 20px rgba(108,114,255,0.3);
+    display:flex; align-items:center; justify-content:center; gap:8px;
   }
-  .save-btn:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
+  .run-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
+  .run-btn:disabled {
+    background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed;
+    box-shadow:none; opacity:0.6;
+  }
+  .run-btn svg { flex-shrink:0; }
+  .btn-helpers { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  .btn-helper { font-size:11px; color:var(--text-muted); text-align:center; }
+  .btn-helper.ready { color:var(--green); }
+  .btn-helper.warning { color:var(--amber); }
 
   /* Alerts */
   .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
@@ -168,14 +187,6 @@
   }
   .upload-submit:hover { border-color:var(--accent); color:var(--accent); }
 
-  /* Run Output */
-  .run-output {
-    margin-top:12px; padding:12px; background:var(--bg-primary); border:1px solid var(--border);
-    border-radius:var(--radius); font-family:'Consolas','Courier New',monospace;
-    font-size:11px; color:var(--text-secondary); max-height:200px; overflow-y:auto;
-    white-space:pre-wrap; word-break:break-all;
-  }
-
   /* Modal Overlay */
   .modal-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
@@ -199,6 +210,31 @@
     color:#fff; cursor:pointer; transition:all 0.15s; margin-top:16px;
   }
   .modal-btn:hover { background:#8186FF; }
+
+  /* Job Log */
+  .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .log-entries { display:flex; flex-direction:column; gap:0; }
+  .log-entry {
+    display:grid; grid-template-columns:64px 24px 1fr; gap:8px; align-items:start;
+    padding:10px 0; border-top:1px solid var(--border);
+  }
+  .log-entry:last-child { border-bottom:1px solid var(--border); }
+  .log-time {
+    font-family:'Consolas','Courier New',monospace; font-size:12px;
+    color:var(--text-muted); padding-top:1px;
+  }
+  .log-icon { font-size:14px; text-align:center; padding-top:1px; }
+  .log-text { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+  .log-text strong { color:var(--text-primary); font-weight:600; }
+  .log-status {
+    display:flex; align-items:center; gap:8px; margin-top:12px;
+    padding:10px 14px; border-radius:var(--radius); font-size:13px; font-weight:500;
+  }
+  .log-status-ok { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
+  .log-status-fail { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
+  .log-status-icon { font-size:14px; }
 
   @media (max-width:900px) {
     .layout { grid-template-columns:1fr; }
@@ -241,11 +277,9 @@
       </div>
     @endif
 
-    @if(session('run_output'))
-      <div class="run-output">{{ session('run_output') }}</div>
-    @endif
 
-    <form method="POST" action="{{ route('payload.store') }}">
+
+    <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
       @csrf
 
       <!-- Payload Name -->
@@ -372,9 +406,22 @@
 
       <div class="divider"></div>
 
-      <!-- Save -->
+      <!-- Actions -->
       <div class="section">
-        <button type="submit" class="save-btn">Save Payload</button>
+        <div class="btn-row">
+          <button type="submit" name="action" value="save" class="save-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save Payload
+          </button>
+          <button type="submit" name="action" value="save_and_run" class="run-btn" id="runJobBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run Job
+          </button>
+        </div>
+        <div class="btn-helpers">
+          <span class="btn-helper">Writes payload JSON to payloads/ folder</span>
+          <span class="btn-helper" id="runJobHelper">Fill in all required fields to enable</span>
+        </div>
       </div>
 
     </form>
@@ -382,6 +429,31 @@
 
   <!-- ═══ SIDE PANEL ═══ -->
   <div class="side-panel">
+
+    <!-- Job Log (shown after a run) -->
+    @if(session('job_log'))
+    <div class="side-title">
+      <span class="log-dot {{ session('job_success') ? 'dot-green' : 'dot-red' }}"></span>
+      Job Log
+    </div>
+
+    <div class="log-entries">
+      @foreach(session('job_log') as $entry)
+        <div class="log-entry">
+          <span class="log-time">{{ $entry['time'] }}</span>
+          <span class="log-icon">{!! $entry['icon'] !!}</span>
+          <span class="log-text">{!! $entry['html'] !!}</span>
+        </div>
+      @endforeach
+    </div>
+
+    <div class="log-status {{ session('job_success') ? 'log-status-ok' : 'log-status-fail' }}">
+      <span class="log-status-icon">{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
+      <span class="log-status-text">{{ session('job_status_text', 'Job finished') }}</span>
+    </div>
+
+    <div class="side-divider"></div>
+    @endif
 
     <!-- Upload Payload -->
     <div class="side-title">Upload Payload</div>
@@ -396,6 +468,7 @@
         <div class="upload-area-text" id="uploadFileName">Drop a <strong>.json</strong> file or click to browse</div>
       </label>
       <button type="submit" class="upload-submit">Upload Payload</button>
+      <div class="btn-helper" style="margin-top:4px">Load an existing payload JSON into the dashboard</div>
     </form>
 
     <div class="side-divider"></div>
@@ -408,17 +481,17 @@
         <span class="payload-icon">&#x1F4C4;</span>
         <span class="payload-name">{{ $payload }}.json</span>
         <div class="payload-actions">
-          <a href="{{ route('payload.show', $payload) }}" target="_blank">View</a>
+          <a href="{{ route('payload.show', $payload) }}" target="_blank" title="View the raw JSON payload">View</a>
           <form method="POST" action="{{ route('payload.run', $payload) }}" style="display:inline"
-                onsubmit="return confirm('Run {{ $payload }}.json?')">
+                onsubmit="return confirm('Run {{ $payload }}.json now?')">
             @csrf
-            <button type="submit" class="run-btn-sm" title="Run this payload">&#9654;</button>
+            <button type="submit" class="run-btn-sm" title="Execute this payload with runner.py">&#9654;</button>
           </form>
           <form method="POST" action="{{ route('payload.destroy', $payload) }}" style="display:inline"
                 onsubmit="return confirm('Delete {{ $payload }}.json?')">
             @csrf
             @method('DELETE')
-            <button type="submit" class="delete-btn" title="Delete">&#x2715;</button>
+            <button type="submit" class="delete-btn" title="Permanently remove this payload file">&#x2715;</button>
           </form>
         </div>
       </div>
@@ -466,11 +539,12 @@
       </div>
 
       <button type="submit" class="modal-btn">Save Settings</button>
+      <div class="btn-helper" style="margin-top:6px">Persists to .emulation_settings.json in the project root</div>
     </form>
   </div>
 </div>
 
-<!-- Close modal on overlay click + Token table logic -->
+<!-- Close modal on overlay click + Token table logic + Run Job validation -->
 <script>
   document.getElementById('settingsModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
@@ -482,7 +556,6 @@
     row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key"></td>'
                   + '<td><input class="field-input" name="token_values[]" placeholder="value"></td>';
     tbody.appendChild(row);
-    // Fix border radius: reset all rows then re-apply to first/last
     refreshTokenBorders();
     row.querySelector('input').focus();
   }
@@ -506,15 +579,52 @@
       last.querySelector('td:last-child .field-input').style.borderBottomRightRadius = 'var(--radius)';
       last.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
       last.querySelectorAll('.field-input').forEach(function(inp) { inp.style.borderBottom = '1px solid var(--border)'; });
-      // Middle rows: just ensure right border on last cell
       rows.forEach(function(r, i) {
         if (i > 0 && i < rows.length - 1) {
           r.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
         }
-        if (i === rows.length - 1) return;
       });
     }
   }
+
+  // ── Run Job validation ──────────────────────────────
+  (function() {
+    var btn     = document.getElementById('runJobBtn');
+    var helper  = document.getElementById('runJobHelper');
+    var form    = document.getElementById('payloadForm');
+    if (!form || !btn) return;
+
+    var nameField   = form.querySelector('[name="payload_name"]');
+    var urlField    = form.querySelector('[name="target_url"]');
+    var scriptField = form.querySelector('[name="script_path"]');
+
+    var fields = [nameField, urlField, scriptField].filter(Boolean);
+
+    function check() {
+      var missing = [];
+
+      if (!nameField || !nameField.value.trim()) missing.push('Payload Name');
+      if (!urlField  || !urlField.value.trim())  missing.push('Target URL');
+      if (!scriptField || !scriptField.value)     missing.push('Navigation Script');
+
+      if (missing.length > 0) {
+        btn.disabled = true;
+        helper.textContent = 'Missing: ' + missing.join(', ');
+        helper.className = 'btn-helper warning';
+      } else {
+        btn.disabled = false;
+        helper.textContent = 'Saves the payload then executes it with runner.py';
+        helper.className = 'btn-helper ready';
+      }
+    }
+
+    fields.forEach(function(f) {
+      f.addEventListener('input', check);
+      f.addEventListener('change', check);
+    });
+
+    check(); // run on page load
+  })();
 </script>
 
 </body>
