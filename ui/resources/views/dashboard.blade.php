@@ -114,6 +114,64 @@
   .btn-helper.ready { color:var(--green); }
   .btn-helper.warning { color:var(--amber); }
 
+  /* Script Cards */
+  .script-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .script-card {
+    background:var(--bg-input); border:1px solid var(--border); border-radius:12px;
+    padding:18px; cursor:pointer; transition:all 0.15s; text-align:center;
+  }
+  .script-card:hover { border-color:var(--accent); background:var(--bg-hover); }
+  .script-card.active { border-color:var(--accent); background:var(--accent-glow); }
+  .script-card-icon { font-size:28px; margin-bottom:8px; }
+  .script-card-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .script-card-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
+  .script-panel { margin-top:12px; }
+
+  /* PageCast CTA */
+  .pagecast-cta {
+    display:flex; align-items:center; gap:14px; padding:16px;
+    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
+  }
+  .pagecast-cta-icon { font-size:24px; flex-shrink:0; }
+  .pagecast-cta-body { flex:1; }
+  .pagecast-cta-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .pagecast-cta-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
+  .pagecast-launch-btn {
+    flex-shrink:0; padding:10px 18px; font-size:13px; font-weight:600; font-family:inherit;
+    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
+    color:#fff; cursor:pointer; display:flex; align-items:center; gap:6px;
+    transition:all 0.2s; box-shadow:0 2px 12px rgba(108,114,255,0.3); white-space:nowrap;
+  }
+  .pagecast-launch-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(108,114,255,0.45); }
+
+  /* Developer Checkbox */
+  .developer-check {
+    display:flex; align-items:center; gap:10px; margin-top:14px;
+    cursor:pointer; font-size:13px; color:var(--text-secondary); user-select:none;
+  }
+  .developer-check input[type="checkbox"] { display:none; }
+  .developer-check-box {
+    width:18px; height:18px; border:1.5px solid var(--border); border-radius:4px;
+    background:var(--bg-input); flex-shrink:0; position:relative; transition:all 0.15s;
+  }
+  .developer-check input:checked ~ .developer-check-box {
+    background:var(--accent); border-color:var(--accent);
+  }
+  .developer-check input:checked ~ .developer-check-box::after {
+    content:''; position:absolute; top:2px; left:5px; width:5px; height:9px;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
+  .developer-check:hover .developer-check-box { border-color:var(--accent); }
+
+  /* Developer Message */
+  .developer-msg {
+    display:flex; align-items:flex-start; gap:12px; margin-top:12px;
+    padding:14px; background:var(--amber-bg); border:1px solid var(--amber-border);
+    border-radius:var(--radius); font-size:13px; color:var(--text-secondary); line-height:1.5;
+  }
+  .developer-msg-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .developer-msg-body strong { color:var(--text-primary); }
+
   /* Alerts */
   .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
   .alert-success { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
@@ -296,12 +354,12 @@
     <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
       @csrf
 
-      <!-- Payload Name -->
+      <!-- Job Name -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">0</div>
-          <div class="section-title">Payload Name</div>
-          <div class="section-subtitle">Filename saved to payloads/</div>
+          <div class="section-title">Job Name</div>
+          <div class="section-subtitle">A name for this job configuration</div>
         </div>
         <div class="field">
           <input class="field-input" type="text" name="payload_name"
@@ -373,24 +431,76 @@
 
       <div class="divider"></div>
 
-      <!-- Step 4: Script -->
+      <!-- Step 4: Navigation Script -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">4</div>
           <div class="section-title">Navigation Script</div>
-          <div class="section-subtitle">Select from scripts/ folder</div>
+          <div class="section-subtitle">How should the browser navigate the site?</div>
         </div>
-        <div class="field">
-          <select class="field-select" name="script_path" required>
-            @forelse($scripts as $script)
-              <option value="{{ $script }}" {{ old('script_path') === $script ? 'selected' : '' }}>
-                {{ $script }}
-              </option>
-            @empty
-              <option value="" disabled>No scripts found in scripts/</option>
-            @endforelse
-          </select>
+
+        <div class="script-options">
+          <div class="script-card" id="cardPagecast" onclick="selectScriptPath('pagecast')">
+            <div class="script-card-icon">&#x23FA;</div>
+            <div class="script-card-title">Record with PageCast</div>
+            <div class="script-card-desc">Open a browser and record your actions. No coding required.</div>
+          </div>
+          <div class="script-card" id="cardExisting" onclick="selectScriptPath('existing')">
+            <div class="script-card-icon">&#x1F4C4;</div>
+            <div class="script-card-title">Use Existing Script</div>
+            <div class="script-card-desc">Select a script written by a developer or from a previous job.</div>
+          </div>
         </div>
+
+        <!-- PageCast panel -->
+        <div class="script-panel" id="panelPagecast" style="display:none">
+          <div class="pagecast-cta">
+            <div class="pagecast-cta-icon">&#x23FA;</div>
+            <div class="pagecast-cta-body">
+              <div class="pagecast-cta-title">Create your navigation script with PageCast</div>
+              <div class="pagecast-cta-desc">PageCast will open a browser to the Target URL above. Perform the steps you want to record, then click Stop. Your script will be saved automatically.</div>
+            </div>
+            <button type="button" class="pagecast-launch-btn" onclick="alert('PageCast recording will launch here.')">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Launch PageCast
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing script panel -->
+        <div class="script-panel" id="panelExisting" style="display:none">
+          <div class="field" style="margin-top:0">
+            <select class="field-select" name="script_path" id="scriptSelect">
+              <option value="">-- Select a script --</option>
+              @foreach($scripts as $script)
+                <option value="{{ $script }}" {{ old('script_path') === $script ? 'selected' : '' }}>
+                  {{ $script }}
+                </option>
+              @endforeach
+            </select>
+          </div>
+          @if(count($scripts) === 0)
+            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found in scripts/ folder.</div>
+          @endif
+        </div>
+
+        <!-- Developer handoff checkbox -->
+        <label class="developer-check" id="devCheckLabel">
+          <input type="checkbox" name="needs_developer" id="devCheck" value="1" {{ old('needs_developer') ? 'checked' : '' }}>
+          <span class="developer-check-box"></span>
+          <span class="developer-check-text">I need a developer to write the navigation script for me</span>
+        </label>
+
+        <!-- Developer message (shown when checked) -->
+        <div class="developer-msg" id="devMsg" style="display:none">
+          <div class="developer-msg-icon">&#x1F6E0;&#xFE0F;</div>
+          <div class="developer-msg-body">
+            <strong>Developer assistance requested</strong><br>
+            Save your configuration, then share the generated JSON file with your developer. They will write the navigation script and add it to the scripts/ folder.
+          </div>
+        </div>
+
+        <input type="hidden" name="script_mode" id="scriptModeInput" value="">
       </div>
 
       <div class="divider"></div>
@@ -425,7 +535,7 @@
         <div class="btn-row">
           <button type="submit" name="action" value="save" class="save-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save Payload
+            Save Configuration
           </button>
           <button type="submit" name="action" value="save_and_run" class="run-btn" id="runJobBtn" disabled>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -433,8 +543,8 @@
           </button>
         </div>
         <div class="btn-helpers">
-          <span class="btn-helper">Writes payload JSON to payloads/ folder</span>
-          <span class="btn-helper" id="runJobHelper">Fill in all required fields to enable</span>
+          <span class="btn-helper" id="saveHelper">Saves your job configuration to payloads/</span>
+          <span class="btn-helper" id="runJobHelper">Select a navigation script to enable</span>
         </div>
       </div>
 
@@ -588,12 +698,13 @@
   </div>
 </div>
 
-<!-- Close modal on overlay click + Token table logic + Run Job validation -->
+<!-- Close modal on overlay click + Token table + Script branching + Validation -->
 <script>
   document.getElementById('settingsModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
   });
 
+  // ── Token table ─────────────────────────────────────
   function addTokenRow() {
     var tbody = document.querySelector('#tokenTable tbody');
     var row = document.createElement('tr');
@@ -631,43 +742,107 @@
     }
   }
 
+  // ── Script path branching ───────────────────────────
+  var currentMode = '';
+
+  function selectScriptPath(mode) {
+    currentMode = mode;
+    document.getElementById('scriptModeInput').value = mode;
+
+    var cardPC  = document.getElementById('cardPagecast');
+    var cardEx  = document.getElementById('cardExisting');
+    var panelPC = document.getElementById('panelPagecast');
+    var panelEx = document.getElementById('panelExisting');
+
+    cardPC.classList.toggle('active', mode === 'pagecast');
+    cardEx.classList.toggle('active', mode === 'existing');
+    panelPC.style.display = mode === 'pagecast' ? 'block' : 'none';
+    panelEx.style.display = mode === 'existing' ? 'block' : 'none';
+
+    checkRunReady();
+  }
+
+  // ── Developer checkbox ──────────────────────────────
+  var devCheck = document.getElementById('devCheck');
+  var devMsg   = document.getElementById('devMsg');
+
+  devCheck.addEventListener('change', function() {
+    devMsg.style.display = this.checked ? 'flex' : 'none';
+    checkRunReady();
+  });
+
   // ── Run Job validation ──────────────────────────────
-  (function() {
-    var btn     = document.getElementById('runJobBtn');
-    var helper  = document.getElementById('runJobHelper');
-    var form    = document.getElementById('payloadForm');
+  function checkRunReady() {
+    var btn        = document.getElementById('runJobBtn');
+    var helper     = document.getElementById('runJobHelper');
+    var saveHelper = document.getElementById('saveHelper');
+    var form       = document.getElementById('payloadForm');
     if (!form || !btn) return;
 
-    var nameField   = form.querySelector('[name="payload_name"]');
-    var urlField    = form.querySelector('[name="target_url"]');
-    var scriptField = form.querySelector('[name="script_path"]');
+    var nameVal  = (form.querySelector('[name="payload_name"]').value || '').trim();
+    var urlVal   = (form.querySelector('[name="target_url"]').value || '').trim();
+    var scriptSel = document.getElementById('scriptSelect');
+    var scriptVal = scriptSel ? scriptSel.value : '';
+    var devChecked = devCheck.checked;
 
-    var fields = [nameField, urlField, scriptField].filter(Boolean);
-
-    function check() {
-      var missing = [];
-
-      if (!nameField || !nameField.value.trim()) missing.push('Payload Name');
-      if (!urlField  || !urlField.value.trim())  missing.push('Target URL');
-      if (!scriptField || !scriptField.value)     missing.push('Navigation Script');
-
-      if (missing.length > 0) {
-        btn.disabled = true;
-        helper.textContent = 'Missing: ' + missing.join(', ');
-        helper.className = 'btn-helper warning';
-      } else {
-        btn.disabled = false;
-        helper.textContent = 'Saves the payload then executes it with runner.py';
-        helper.className = 'btn-helper ready';
-      }
+    // Developer mode: can save but not run
+    if (devChecked) {
+      btn.disabled = true;
+      helper.textContent = 'Save your configuration, then share it with your developer';
+      helper.className = 'btn-helper warning';
+      saveHelper.textContent = 'Saves configuration for developer handoff';
+      saveHelper.className = 'btn-helper ready';
+      return;
     }
 
+    // PageCast mode: can save but not run yet (no script generated)
+    if (currentMode === 'pagecast') {
+      btn.disabled = true;
+      helper.textContent = 'Record your navigation with PageCast first';
+      helper.className = 'btn-helper warning';
+      saveHelper.textContent = 'Saves your job configuration to payloads/';
+      saveHelper.className = 'btn-helper';
+      return;
+    }
+
+    // Existing script mode: check all required fields
+    var missing = [];
+    if (!nameVal) missing.push('Job Name');
+    if (!urlVal)  missing.push('Target URL');
+    if (currentMode !== 'existing') missing.push('Navigation Script (select a path above)');
+    else if (!scriptVal) missing.push('Navigation Script');
+
+    if (missing.length > 0) {
+      btn.disabled = true;
+      helper.textContent = 'Missing: ' + missing.join(', ');
+      helper.className = 'btn-helper warning';
+    } else {
+      btn.disabled = false;
+      helper.textContent = 'Saves configuration then executes the job';
+      helper.className = 'btn-helper ready';
+    }
+
+    saveHelper.textContent = 'Saves your job configuration to payloads/';
+    saveHelper.className = 'btn-helper';
+  }
+
+  // Wire up live field watchers
+  (function() {
+    var form = document.getElementById('payloadForm');
+    if (!form) return;
+
+    var fields = form.querySelectorAll('[name="payload_name"], [name="target_url"]');
     fields.forEach(function(f) {
-      f.addEventListener('input', check);
-      f.addEventListener('change', check);
+      f.addEventListener('input', checkRunReady);
     });
 
-    check(); // run on page load
+    var scriptSel = document.getElementById('scriptSelect');
+    if (scriptSel) {
+      scriptSel.addEventListener('change', checkRunReady);
+    }
+
+    // Initial state
+    checkRunReady();
   })();
 </script>
 
