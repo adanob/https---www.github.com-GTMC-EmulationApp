@@ -62,7 +62,7 @@ class EmulationController extends Controller
             if ($credentials === null) {
                 return back()
                     ->withInput()
-                    ->withErrors(['credentials' => 'Encryption failed. Check uv path in Settings.']);
+                    ->withErrors(['credentials' => 'Encryption failed. Check .emulation_key file and PHP openssl extension.']);
             }
         }
 
@@ -260,42 +260,48 @@ class EmulationController extends Controller
 
     private function encryptCredentials(string $username, string $password): ?array
     {
-        $escapedUser = str_replace(["\\", '"'], ["\\\\", '\\"'], $username);
-        $escapedPass = str_replace(["\\", '"'], ["\\\\", '\\"'], $password);
-
-        $pythonCode = sprintf(
-            'import json; from engine import CredentialManager; cm = CredentialManager(); print(json.dumps(cm.encrypt_credentials(\"%s\", \"%s\")))',
-            $escapedUser,
-            $escapedPass
-        );
-
         try {
-            $uv = $this->getUvCommand();
+            // Read the encryption key from .emulation_key
+            $keyFile = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_key';
 
-            $result = Process::path($this->appRoot)->run([
-                $uv, 'run', 'python', '-c', $pythonCode
-            ]);
-
-            if ($result->successful()) {
-                $output = trim($result->output());
-                $decoded = json_decode($output, true);
-
-                if (is_array($decoded) && isset($decoded['username'], $decoded['password'])) {
-                    return $decoded;
-                }
+            if (!file_exists($keyFile)) {
+                // Auto-generate a key (mirrors CredentialManager._load_or_generate_key)
+                $keyText = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+                file_put_contents($keyFile, $keyText);
+                Log::info('Generated new encryption key', ['path' => $keyFile]);
             }
 
-            Log::error('Credential encryption failed', [
-                'exit_code' => $result->exitCode(),
-                'output'    => $result->output(),
-                'error'     => $result->errorOutput(),
-            ]);
+            $keyText = trim(file_get_contents($keyFile));
+            if (empty($keyText)) {
+                Log::error('Encryption key file is empty', ['path' => $keyFile]);
+                return null;
+            }
+
+            // Derive a 32-byte key using SHA-256 (matches CredentialManager._padded_key)
+            $derivedKey = hash('sha256', $keyText, true);  // raw 32 bytes
+
+            // AES-256-CTR with a zero IV (matches pyaes default CTR nonce)
+            $iv = str_repeat("\0", 16);
+
+            // openssl_encrypt with OPENSSL_RAW_DATA returns raw ciphertext (no base64)
+            // We base64-encode ourselves to match the Python side exactly.
+            $encUser = openssl_encrypt($username, 'aes-256-ctr', $derivedKey, OPENSSL_RAW_DATA, $iv);
+            $encPass = openssl_encrypt($password, 'aes-256-ctr', $derivedKey, OPENSSL_RAW_DATA, $iv);
+
+            if ($encUser === false || $encPass === false) {
+                Log::error('openssl_encrypt returned false', ['error' => openssl_error_string()]);
+                return null;
+            }
+
+            return [
+                'username' => base64_encode($encUser),
+                'password' => base64_encode($encPass),
+            ];
 
         } catch (\Exception $e) {
             Log::error('Credential encryption exception', ['message' => $e->getMessage()]);
+            return null;
         }
-
-        return null;
     }
 
     // ----------------------------------------------------------------
