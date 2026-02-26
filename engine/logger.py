@@ -13,6 +13,7 @@ Usage inside runner.py:
 """
 
 import os
+import time
 from datetime import datetime
 from typing import Callable, Optional
 
@@ -74,6 +75,14 @@ class JobLogger:
     def _emit(self, level: str, message: str, detail: str):
         """Create a log entry, write to file, and notify callback."""
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+
+        # Flatten multiline details (e.g. Selenium exceptions) to single line
+        if detail:
+            detail = " ".join(detail.replace("\r", "").split("\n")).strip()
+            # Truncate very long details (Selenium errors can be enormous)
+            if len(detail) > 300:
+                detail = detail[:300] + "..."
+
         entry = {
             "time": timestamp,
             "level": level,
