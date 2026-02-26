@@ -161,52 +161,135 @@ class EmulationController extends Controller
         return back()->withErrors(['payload_file' => 'Unsupported file type. Upload a .py script or .json configuration.']);
     }
 
+
     /**
-     * GET /script/{name}/tokens - Detect token names used in a .py script.
+     * GET /script/{name}/tokens - Deep-analyse a .py script.
      *
-     * Scans for tokens["key"], tokens['key'], and tokens.get("key" patterns.
-     */
-    /**
-     * GET /script/{name}/tokens - Analyse a .py script for token usage, target_url and credentials.
-     *
-     * Scans for:
-     *   tokens["key"], tokens['key'], tokens.get("key")       → token names
-     *   context["target_url"]                                   → uses_target_url
-     *   context["credentials"], creds.get(                      → uses_credentials
+     * Extracts:
+     *   tokens["key"], tokens.get("key", "default")  - token names + default values
+     *   Hardcoded https:// URLs                       - suggested target_url
+     *   context["target_url"]                         - uses_target_url flag
+     *   context["credentials"], creds.get(            - uses_credentials flag
+     *   Companion .json (same basename)               - saved values for all fields
      */
     public function scriptTokens(string $name)
     {
         $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
 
+        $empty = [
+            'tokens'            => [],
+            'uses_target_url'   => false,
+            'uses_credentials'  => false,
+            'suggested_url'     => null,
+            'has_saved_creds'   => false,
+        ];
+
         if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
-            return response()->json([
-                'tokens' => [],
-                'uses_target_url' => false,
-                'uses_credentials' => false,
-            ], 200);
+            return response()->json($empty, 200);
         }
 
         $source = file_get_contents($filepath);
 
-        // -- Token names --
+        // -- 1. Token names (bracket access): tokens["key"] --
         preg_match_all('/tokens\s*\[\s*["\']([^"\']+)["\']\s*\]/', $source, $m1);
-        preg_match_all('/tokens\s*\.\s*get\s*\(\s*["\']([^"\']+)["\']/', $source, $m2);
-        $tokenNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
 
-        // -- Target URL detection --
+        // -- 2. Token names + defaults (.get access) --
+        //    tokens.get("key", "default")  or  tokens.get("key")
+        preg_match_all(
+            '/tokens\s*\.\s*get\s*\(\s*["\']([^"\']+)["\']\s*(?:,\s*["\']([^"\']*)["\'])?\s*\)/',
+            $source, $m2
+        );
+
+        // Merge names, preserve defaults
+        $allNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
+        $defaults = [];
+        if (!empty($m2[1])) {
+            foreach ($m2[1] as $i => $key) {
+                $val = $m2[2][$i] ?? '';
+                if ($val !== '') {
+                    $defaults[$key] = $val;
+                }
+            }
+        }
+
+        // Build tokens array with defaults
+        $tokens = [];
+        foreach ($allNames as $tName) {
+            $tokens[] = [
+                'name'    => $tName,
+                'default' => $defaults[$tName] ?? null,
+            ];
+        }
+
+        // -- 3. Target URL detection --
         $usesTargetUrl = (bool) preg_match('/context\s*\[\s*["\']target_url["\']\s*\]/', $source)
-                      || in_array('target_url', $tokenNames, true);
+                      || in_array('target_url', $allNames, true);
 
-        // -- Credentials detection --
+        // -- 4. Credentials detection --
         $usesCredentials = (bool) preg_match('/context\s*\[\s*["\']credentials["\']\s*\]/', $source)
                         || (bool) preg_match('/creds\s*[\.\[]/', $source);
 
+        // -- 5. Extract hardcoded URLs from the script --
+        preg_match_all('/"(https?:\/\/[^"]+)"/', $source, $urlM1);
+        preg_match_all("/\'(https?:\/\/[^']+)\'/", $source, $urlM2);
+        $urls = array_values(array_unique(array_merge($urlM1[1] ?? [], $urlM2[1] ?? [])));
+
+        // Suggest target_url: prefer a /login URL, else derive from first URL's domain
+        $suggestedUrl = null;
+        if ($usesTargetUrl && !empty($urls)) {
+            foreach ($urls as $u) {
+                if (preg_match('/\/login/i', $u)) {
+                    $suggestedUrl = $u;
+                    break;
+                }
+            }
+            if (!$suggestedUrl) {
+                $parsed = parse_url($urls[0]);
+                if ($parsed) {
+                    $suggestedUrl = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '') . '/login';
+                }
+            }
+        }
+
+        // -- 6. Check for companion .json with saved values --
+        $baseName     = pathinfo($name, PATHINFO_FILENAME);
+        $jsonPath     = $this->jobsDir . DIRECTORY_SEPARATOR . $baseName . '.json';
+        $hasSavedCreds = false;
+
+        if (file_exists($jsonPath)) {
+            $saved = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($saved)) {
+                // Override suggested URL with saved value
+                if (!empty($saved['target_url'])) {
+                    $suggestedUrl = $saved['target_url'];
+                }
+
+                // Override token defaults with saved values
+                if (!empty($saved['tokens']) && is_array($saved['tokens'])) {
+                    foreach ($tokens as &$tok) {
+                        if (isset($saved['tokens'][$tok['name']])) {
+                            $tok['default'] = $saved['tokens'][$tok['name']];
+                        }
+                    }
+                    unset($tok);
+                }
+
+                // Flag that credentials are already saved (encrypted)
+                if (!empty($saved['credentials']['username']) && !empty($saved['credentials']['password'])) {
+                    $hasSavedCreds = true;
+                }
+            }
+        }
+
         return response()->json([
-            'tokens'            => $tokenNames,
+            'tokens'            => $tokens,
             'uses_target_url'   => $usesTargetUrl,
             'uses_credentials'  => $usesCredentials,
+            'suggested_url'     => $suggestedUrl,
+            'has_saved_creds'   => $hasSavedCreds,
         ]);
     }
+
 
     /**
      * GET /script/{name}/content - Return the source code of a .py script for preview.
