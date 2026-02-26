@@ -238,7 +238,10 @@ class EmulationController extends Controller
 
             $elapsed = round(microtime(true) - $startTime);
             $output  = $result->output() . "\n" . $result->errorOutput();
-            $success = $result->successful();
+
+            // Check both exit code and output for failure indicators
+            $success = $result->successful()
+                && !str_contains($output, '"status": "error"');
 
             $logEntries  = $this->parseLogOutput($output);
             $statusText  = $success
