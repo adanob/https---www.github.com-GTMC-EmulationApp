@@ -11,4 +11,5 @@ Route::get('/script/{name}/content', [EmulationController::class, 'scriptContent
 Route::get('/payload/{name}',       [EmulationController::class, 'show'])->name('payload.show');
 Route::delete('/payload/{name}',    [EmulationController::class, 'destroy'])->name('payload.destroy');
 Route::post('/payload/{name}/run',  [EmulationController::class, 'run'])->name('payload.run');
+Route::get('/payload/{name}/launch', [EmulationController::class, 'launch'])->name('payload.launch');
 Route::post('/settings',            [EmulationController::class, 'saveSettings'])->name('settings.save');
