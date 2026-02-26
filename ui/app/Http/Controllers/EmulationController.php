@@ -58,13 +58,9 @@ class EmulationController extends Controller
             $existing = json_decode(file_get_contents($filepath), true);
         }
 
-        // Also check for a companion JSON matching the script name
+        // Also search all jobs for a config that uses the same script
         if (!$existing && !empty($validated['script_path'])) {
-            $scriptBase = pathinfo($validated['script_path'], PATHINFO_FILENAME);
-            $companionPath = $this->jobsDir . DIRECTORY_SEPARATOR . $scriptBase . '.json';
-            if (file_exists($companionPath)) {
-                $existing = json_decode(file_get_contents($companionPath), true);
-            }
+            $existing = $this->findCompanionConfig($validated['script_path']);
         }
 
         // -- Credentials: encrypt new ones, or preserve existing --
@@ -287,32 +283,29 @@ class EmulationController extends Controller
         }
 
         // -- 6. Check for companion .json with saved values --
-        $baseName     = pathinfo($name, PATHINFO_FILENAME);
-        $jsonPath     = $this->jobsDir . DIRECTORY_SEPARATOR . $baseName . '.json';
+        //    Search all json files for one with matching script_path
+        $companion = $this->findCompanionConfig($name);
         $hasSavedCreds = false;
 
-        if (file_exists($jsonPath)) {
-            $saved = json_decode(file_get_contents($jsonPath), true);
-            if (is_array($saved)) {
-                // Override suggested URL with saved value
-                if (!empty($saved['target_url'])) {
-                    $suggestedUrl = $saved['target_url'];
-                }
+        if ($companion) {
+            // Override suggested URL with saved value
+            if (!empty($companion['target_url'])) {
+                $suggestedUrl = $companion['target_url'];
+            }
 
-                // Override token defaults with saved values
-                if (!empty($saved['tokens']) && is_array($saved['tokens'])) {
-                    foreach ($tokens as &$tok) {
-                        if (isset($saved['tokens'][$tok['name']])) {
-                            $tok['default'] = $saved['tokens'][$tok['name']];
-                        }
+            // Override token defaults with saved values
+            if (!empty($companion['tokens']) && is_array($companion['tokens'])) {
+                foreach ($tokens as &$tok) {
+                    if (isset($companion['tokens'][$tok['name']])) {
+                        $tok['default'] = $companion['tokens'][$tok['name']];
                     }
-                    unset($tok);
                 }
+                unset($tok);
+            }
 
-                // Flag that credentials are already saved (encrypted)
-                if (!empty($saved['credentials']['username']) && !empty($saved['credentials']['password'])) {
-                    $hasSavedCreds = true;
-                }
+            // Flag that credentials are already saved (encrypted)
+            if (!empty($companion['credentials']['username']) && !empty($companion['credentials']['password'])) {
+                $hasSavedCreds = true;
             }
         }
 
@@ -394,42 +387,45 @@ class EmulationController extends Controller
             $uv = $this->getUvCommand();
 
             if (PHP_OS_FAMILY === 'Windows') {
-                // On Windows, proc_open with create_new_console ensures the
-                // browser opens on the user's desktop instead of Session 0.
-                $cmd = escapeshellarg($uv) . ' run python run.py ' . escapeshellarg($relativePath);
+                // On Windows/WAMP, proc_open inherits Apache's window station
+                // so Chrome opens invisibly. Use a temp .bat + "start /wait"
+                // to force a visible desktop window.
+                $tmpBase  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'emu_' . $name . '_' . time();
+                $logFile  = $tmpBase . '.log';
+                $doneFile = $tmpBase . '.done';
+                $batFile  = $tmpBase . '.bat';
 
-                $descriptors = [
-                    0 => ['pipe', 'r'],   // stdin
-                    1 => ['pipe', 'w'],   // stdout
-                    2 => ['pipe', 'w'],   // stderr
-                ];
+                // Build batch: cd to project root, run uv, write output to log, signal done
+                $batContent = "@echo off\r\n"
+                    . "cd /d " . escapeshellarg($this->appRoot) . "\r\n"
+                    . escapeshellarg($uv) . " run python run.py " . escapeshellarg($relativePath)
+                    . " > " . escapeshellarg($logFile) . " 2>&1\r\n"
+                    . "echo %ERRORLEVEL% > " . escapeshellarg($doneFile) . "\r\n";
 
-                $proc = proc_open(
-                    $cmd,
-                    $descriptors,
-                    $pipes,
-                    $this->appRoot,
-                    null,
-                    ['create_new_console' => true]
-                );
+                file_put_contents($batFile, $batContent);
 
-                if (!is_resource($proc)) {
-                    throw new \RuntimeException("Failed to launch runner process.");
+                // "start /wait" opens a VISIBLE cmd window on the user's desktop.
+                // pclose blocks until the batch completes (via /wait).
+                pclose(popen('cmd /c start "EmulationApp Job" /wait cmd /c ' . escapeshellarg($batFile), 'r'));
+
+                // Safety fallback: poll for the .done file in case pclose returned early
+                $timeout = 300;
+                $waited  = 0;
+                while (!file_exists($doneFile) && $waited < $timeout) {
+                    clearstatcache();
+                    sleep(1);
+                    $waited++;
                 }
+                clearstatcache();
 
-                fclose($pipes[0]); // close stdin
+                $output   = file_exists($logFile) ? file_get_contents($logFile) : '';
+                $exitCode = file_exists($doneFile) ? (int) trim(file_get_contents($doneFile)) : 1;
+                $success  = ($exitCode === 0) && !str_contains($output, '"status": "error"');
 
-                // Read output (blocks until process completes)
-                $stdout = stream_get_contents($pipes[1]);
-                $stderr = stream_get_contents($pipes[2]);
-
-                fclose($pipes[1]);
-                fclose($pipes[2]);
-
-                $exitCode = proc_close($proc);
-
-                $output  = $stdout . "\n" . $stderr;
-                $success = ($exitCode === 0) && !str_contains($output, '"status": "error"');
+                // Clean up temp files
+                @unlink($batFile);
+                @unlink($logFile);
+                @unlink($doneFile);
 
             } else {
                 // Unix: standard Laravel Process
@@ -543,6 +539,39 @@ class EmulationController extends Controller
     // ----------------------------------------------------------------
     //  Helpers
     // ----------------------------------------------------------------
+
+    /**
+     * Search all .json files in the jobs directory for one whose
+     * script_path matches the given script filename.
+     *
+     * Returns the decoded JSON array of the most recently modified
+     * matching config, or null if none found.
+     */
+    private function findCompanionConfig(string $scriptName): ?array
+    {
+        $jsonFiles = glob($this->jobsDir . DIRECTORY_SEPARATOR . '*.json');
+        if (!$jsonFiles) {
+            return null;
+        }
+
+        // Sort newest first so we get the most recent config
+        usort($jsonFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+
+        foreach ($jsonFiles as $jsonFile) {
+            $decoded = json_decode(file_get_contents($jsonFile), true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $savedScript = $decoded['script_path'] ?? '';
+            // Match by exact name or basename
+            if ($savedScript === $scriptName || basename($savedScript) === $scriptName) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Parse console output from runner.py into structured log entries.
