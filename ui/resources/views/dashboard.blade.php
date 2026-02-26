@@ -1140,6 +1140,17 @@
     var scriptSel = document.getElementById('scriptSelect');
     if (scriptSel) {
       scriptSel.addEventListener('change', function() {
+        // Auto-derive job name from script name
+        var scriptVal = this.value;
+        if (scriptVal) {
+          var base = scriptVal.replace(/\.py$/, '');
+          var nameInput = form.querySelector('[name="payload_name"]');
+          // Only overwrite if user hasn't manually edited to something custom
+          var current = nameInput.value;
+          if (!current || current === 'my_job' || current.match(/^my_job_[a-z0-9]{5}$/) || current.match(/^.+_[a-z0-9]{5}$/)) {
+            nameInput.value = base + '_' + generateId();
+          }
+        }
         checkRunReady();
         analyseScript(this.value);
         fetchScriptContent(this.value);
