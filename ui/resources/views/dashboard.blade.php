@@ -476,14 +476,15 @@
         </div>
         <div class="cred-row">
           <div class="field">
-            <label class="field-label">Username</label>
-            <input class="field-input" type="text" name="username"
+            <label class="field-label" id="userLabel">Username</label>
+            <input class="field-input" type="text" name="username" id="usernameInput"
                    value="{{ old('username') }}" placeholder="user@company.com">
           </div>
           <div class="field">
-            <label class="field-label">Password</label>
+            <label class="field-label" id="passLabel">Password</label>
             <div class="password-wrap">
-              <input class="field-input" type="password" name="password" placeholder="Enter password">
+              <input class="field-input" type="password" name="password" id="passwordInput"
+                     placeholder="Enter password">
               <div class="encrypt-badge">ENCRYPTED</div>
             </div>
           </div>
@@ -515,7 +516,7 @@
         <div class="field" style="margin-bottom:16px">
           <input class="field-input" type="url" name="target_url" id="targetUrlInput"
                  value="{{ old('target_url') }}"
-                 placeholder="https://portal.example.com/login" required>
+                 placeholder="https://portal.example.com/login">
         </div>
 
         {{-- Additional tokens --}}
@@ -717,13 +718,29 @@
     if (e.target === this) this.classList.remove('active');
   });
 
+  // ── Random 5-char ID ───────────────────────────────
+  function generateId() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    var id = '';
+    for (var i = 0; i < 5; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+    return id;
+  }
+
+  // Set initial job name with random suffix on page load
+  (function() {
+    var nameInput = document.querySelector('[name="payload_name"]');
+    if (nameInput && (nameInput.value === 'my_job' || nameInput.value === '')) {
+      nameInput.value = 'my_job_' + generateId();
+    }
+  })();
+
   // ── Clear form ─────────────────────────────────────
   function clearForm() {
     if (!confirm('Clear all fields?')) return;
     var form = document.getElementById('payloadForm');
     if (!form) return;
     form.querySelectorAll('input[type="text"], input[type="url"], input[type="password"]').forEach(function(inp) {
-      if (inp.name === 'payload_name') inp.value = 'my_job';
+      if (inp.name === 'payload_name') inp.value = 'my_job_' + generateId();
       else inp.value = '';
     });
     var sel = document.getElementById('scriptSelect');
@@ -757,6 +774,18 @@
     var urlInput = document.getElementById('targetUrlInput');
     urlInput.style.borderColor = '';
     urlInput.style.background = '';
+
+    // Reset credential field styling
+    var userIn = document.getElementById('usernameInput');
+    var passIn = document.getElementById('passwordInput');
+    userIn.style.borderColor = '';
+    userIn.style.background = '';
+    userIn.placeholder = 'user@company.com';
+    passIn.style.borderColor = '';
+    passIn.style.background = '';
+    passIn.placeholder = 'Enter password';
+    document.getElementById('userLabel').textContent = 'Username';
+    document.getElementById('passLabel').textContent = 'Password';
   }
 
   // ── Token table ─────────────────────────────────────
@@ -794,8 +823,29 @@
       urlInput.style.background = '';
     }
 
-    // -- Credentials badge --
+    // -- Credentials badge + field highlighting --
     credBadge.style.display = usesCreds ? 'inline-flex' : 'none';
+    var userIn = document.getElementById('usernameInput');
+    var passIn = document.getElementById('passwordInput');
+    if (usesCreds) {
+      userIn.style.borderColor = 'var(--green)';
+      userIn.style.background = 'var(--green-bg)';
+      userIn.placeholder = 'Required by script';
+      passIn.style.borderColor = 'var(--green)';
+      passIn.style.background = 'var(--green-bg)';
+      passIn.placeholder = 'Required by script';
+      document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; script</span>';
+      document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; script</span>';
+    } else {
+      userIn.style.borderColor = '';
+      userIn.style.background = '';
+      userIn.placeholder = 'user@company.com';
+      passIn.style.borderColor = '';
+      passIn.style.background = '';
+      passIn.placeholder = 'Enter password';
+      document.getElementById('userLabel').textContent = 'Username';
+      document.getElementById('passLabel').textContent = 'Password';
+    }
 
     // -- Tokens --
     if (!tokenNames || tokenNames.length === 0) {
@@ -1032,7 +1082,6 @@
     }
     var missing = [];
     if (!nameVal) missing.push('Job Name');
-    if (!urlVal)  missing.push('Target URL');
     if (currentMode !== 'existing') missing.push('Navigation Script');
     else if (!scriptVal) missing.push('Navigation Script');
 
