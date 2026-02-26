@@ -141,6 +141,10 @@ class EmulationController extends Controller
             return $this->run($validated['payload_name']);
         }
 
+        if ($request->input('action') === 'save_and_launch' && $status === 'ready') {
+            return redirect()->route('payload.launch', $validated['payload_name']);
+        }
+
         $message = match($status) {
             'needs_developer'  => "Configuration saved: {$filename}. Share this file with your developer.",
             'needs_recording'  => "Configuration saved: {$filename}. Record your navigation with PageCast to complete setup.",
@@ -366,11 +370,11 @@ class EmulationController extends Controller
     }
 
     /**
-     * POST /payload/{name}/run - Execute a payload via runner.py.
+     * POST /payload/{name}/run - Execute a payload in the background (headless).
      *
-     * On Windows, uses proc_open with create_new_console so the
-     * browser window is visible on the user's desktop (not hidden
-     * inside Apache's service session).
+     * On Windows/WAMP, Apache runs in a service session so Chrome
+     * cannot display a visible window. Use the "Launch" button
+     * instead for visible execution.
      */
     public function run(string $name)
     {
@@ -386,58 +390,15 @@ class EmulationController extends Controller
             $startTime = microtime(true);
             $uv = $this->getUvCommand();
 
-            if (PHP_OS_FAMILY === 'Windows') {
-                // On Windows/WAMP, proc_open inherits Apache's window station
-                // so Chrome opens invisibly. Use a temp .bat + "start /wait"
-                // to force a visible desktop window.
-                $tmpBase  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'emu_' . $name . '_' . time();
-                $logFile  = $tmpBase . '.log';
-                $doneFile = $tmpBase . '.done';
-                $batFile  = $tmpBase . '.bat';
-
-                // Build batch: cd to project root, run uv, write output to log, signal done
-                $batContent = "@echo off\r\n"
-                    . "cd /d " . escapeshellarg($this->appRoot) . "\r\n"
-                    . escapeshellarg($uv) . " run python run.py " . escapeshellarg($relativePath)
-                    . " > " . escapeshellarg($logFile) . " 2>&1\r\n"
-                    . "echo %ERRORLEVEL% > " . escapeshellarg($doneFile) . "\r\n";
-
-                file_put_contents($batFile, $batContent);
-
-                // "start /wait" opens a VISIBLE cmd window on the user's desktop.
-                // pclose blocks until the batch completes (via /wait).
-                pclose(popen('cmd /c start "EmulationApp Job" /wait cmd /c ' . escapeshellarg($batFile), 'r'));
-
-                // Safety fallback: poll for the .done file in case pclose returned early
-                $timeout = 300;
-                $waited  = 0;
-                while (!file_exists($doneFile) && $waited < $timeout) {
-                    clearstatcache();
-                    sleep(1);
-                    $waited++;
-                }
-                clearstatcache();
-
-                $output   = file_exists($logFile) ? file_get_contents($logFile) : '';
-                $exitCode = file_exists($doneFile) ? (int) trim(file_get_contents($doneFile)) : 1;
-                $success  = ($exitCode === 0) && !str_contains($output, '"status": "error"');
-
-                // Clean up temp files
-                @unlink($batFile);
-                @unlink($logFile);
-                @unlink($doneFile);
-
-            } else {
-                // Unix: standard Laravel Process
-                $result = Process::path($this->appRoot)
-                    ->timeout(300)
-                    ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
-
-                $output  = $result->output() . "\n" . $result->errorOutput();
-                $success = $result->successful() && !str_contains($output, '"status": "error"');
-            }
+            $result = Process::path($this->appRoot)
+                ->timeout(300)
+                ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
 
             $elapsed = round(microtime(true) - $startTime);
+            $output  = $result->output() . "\n" . $result->errorOutput();
+
+            $success = $result->successful()
+                && !str_contains($output, '"status": "error"');
 
             $logEntries  = $this->parseLogOutput($output);
             $statusText  = $success
@@ -466,6 +427,54 @@ class EmulationController extends Controller
                 ->with('job_success', false)
                 ->with('job_status_text', 'Job could not be started');
         }
+    }
+
+    /**
+     * GET /payload/{name}/launch - Download a .bat file that runs
+     * the job in the user's desktop session with a VISIBLE browser.
+     *
+     * The user double-clicks the .bat → Chrome opens on their screen →
+     * they watch the automation → window stays open to show results.
+     */
+    public function launch(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
+
+        if (!file_exists($filepath)) {
+            return back()->withErrors(['run' => "Payload not found: {$name}.json"]);
+        }
+
+        $uv = $this->getUvCommand();
+        $relativePath = 'jobs\\' . $name . '.json';
+
+        $bat  = "@echo off\r\n";
+        $bat .= "title EmulationApp - {$name}\r\n";
+        $bat .= "color 0A\r\n";
+        $bat .= "echo.\r\n";
+        $bat .= "echo  ========================================\r\n";
+        $bat .= "echo   EmulationApp - Running Job\r\n";
+        $bat .= "echo   {$name}\r\n";
+        $bat .= "echo  ========================================\r\n";
+        $bat .= "echo.\r\n";
+        $bat .= "cd /d \"" . str_replace('/', '\\', $this->appRoot) . "\"\r\n";
+        $bat .= "echo  [%TIME%] Starting job...\r\n";
+        $bat .= "echo.\r\n";
+        $bat .= "\"{$uv}\" run python run.py \"{$relativePath}\"\r\n";
+        $bat .= "echo.\r\n";
+        $bat .= "if %ERRORLEVEL% EQU 0 (\r\n";
+        $bat .= "    color 0A\r\n";
+        $bat .= "    echo  [%TIME%] Job completed successfully.\r\n";
+        $bat .= ") else (\r\n";
+        $bat .= "    color 0C\r\n";
+        $bat .= "    echo  [%TIME%] Job failed with exit code %ERRORLEVEL%.\r\n";
+        $bat .= ")\r\n";
+        $bat .= "echo.\r\n";
+        $bat .= "echo  Press any key to close...\r\n";
+        $bat .= "pause >nul\r\n";
+
+        return response($bat)
+            ->header('Content-Type', 'application/x-bat')
+            ->header('Content-Disposition', 'attachment; filename="run_' . $name . '.bat"');
     }
 
     /**
