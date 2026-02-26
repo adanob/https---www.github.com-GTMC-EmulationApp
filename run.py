@@ -26,5 +26,9 @@ def main():
 
     print(json.dumps(result, indent=2, default=str))
 
+    # Exit with error code if job failed so the Dashboard detects it
+    if result.get("status") != "ok":
+        sys.exit(1)
+
 if __name__ == "__main__":
     main()
