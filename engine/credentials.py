@@ -68,16 +68,18 @@ class CredentialManager:
     def _get_ctr_encrypt(self):
         """Return an encrypt(bytes)->bytes callable using the best available backend."""
         try:
-            from pyaes import AESModeOfOperationCTR
-            aes = AESModeOfOperationCTR(self._padded_key())
+            from pyaes import AESModeOfOperationCTR, Counter
+            # Counter must start at 0 to match PHP openssl_encrypt with zero IV
+            counter = Counter(initial_value=0)
+            aes = AESModeOfOperationCTR(self._padded_key(), counter=counter)
             return aes.encrypt
         except ImportError:
             pass
 
-        # Fallback: cryptography library (stdlib on many systems)
+        # Fallback: cryptography library
         try:
             from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            nonce = b'\x00' * 16  # deterministic CTR nonce (matches pyaes default)
+            nonce = b'\x00' * 16  # CTR counter starts at 0 (matches PHP openssl)
             cipher = Cipher(algorithms.AES(self._padded_key()), modes.CTR(nonce))
             encryptor = cipher.encryptor()
             return lambda data: encryptor.update(data) + encryptor.finalize()
@@ -87,15 +89,17 @@ class CredentialManager:
     def _get_ctr_decrypt(self):
         """Return a decrypt(bytes)->bytes callable using the best available backend."""
         try:
-            from pyaes import AESModeOfOperationCTR
-            aes = AESModeOfOperationCTR(self._padded_key())
+            from pyaes import AESModeOfOperationCTR, Counter
+            # Counter must start at 0 to match PHP openssl_encrypt with zero IV
+            counter = Counter(initial_value=0)
+            aes = AESModeOfOperationCTR(self._padded_key(), counter=counter)
             return aes.decrypt
         except ImportError:
             pass
 
         try:
             from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            nonce = b'\x00' * 16
+            nonce = b'\x00' * 16  # CTR counter starts at 0 (matches PHP openssl)
             cipher = Cipher(algorithms.AES(self._padded_key()), modes.CTR(nonce))
             decryptor = cipher.decryptor()
             return lambda data: decryptor.update(data) + decryptor.finalize()
