@@ -168,23 +168,46 @@ class EmulationController extends Controller
      *
      * Scans for tokens["key"], tokens['key'], and tokens.get("key" patterns.
      */
+    /**
+     * GET /script/{name}/tokens - Analyse a .py script for token usage, target_url and credentials.
+     *
+     * Scans for:
+     *   tokens["key"], tokens['key'], tokens.get("key")       → token names
+     *   context["target_url"]                                   → uses_target_url
+     *   context["credentials"], creds.get(                      → uses_credentials
+     */
     public function scriptTokens(string $name)
     {
         $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
 
         if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
-            return response()->json(['tokens' => []], 200);
+            return response()->json([
+                'tokens' => [],
+                'uses_target_url' => false,
+                'uses_credentials' => false,
+            ], 200);
         }
 
         $source = file_get_contents($filepath);
 
-        // Match tokens["key"], tokens['key'], tokens.get("key", tokens.get('key'
+        // -- Token names --
         preg_match_all('/tokens\s*\[\s*["\']([^"\']+)["\']\s*\]/', $source, $m1);
         preg_match_all('/tokens\s*\.\s*get\s*\(\s*["\']([^"\']+)["\']/', $source, $m2);
-
         $tokenNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
 
-        return response()->json(['tokens' => $tokenNames]);
+        // -- Target URL detection --
+        $usesTargetUrl = (bool) preg_match('/context\s*\[\s*["\']target_url["\']\s*\]/', $source)
+                      || in_array('target_url', $tokenNames, true);
+
+        // -- Credentials detection --
+        $usesCredentials = (bool) preg_match('/context\s*\[\s*["\']credentials["\']\s*\]/', $source)
+                        || (bool) preg_match('/creds\s*[\.\[]/', $source);
+
+        return response()->json([
+            'tokens'            => $tokenNames,
+            'uses_target_url'   => $usesTargetUrl,
+            'uses_credentials'  => $usesCredentials,
+        ]);
     }
 
     /**
