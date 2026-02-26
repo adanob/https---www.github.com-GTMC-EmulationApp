@@ -31,14 +31,20 @@ class Payload:
 
     @classmethod
     def from_json(cls, raw: str) -> "Payload":
-        """Parse a JSON string into a Payload."""
+        """Parse a JSON string into a Payload, ignoring unknown fields."""
         data = json.loads(raw)
-        return cls(**data)
+        return cls._from_filtered(data)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Payload":
-        """Build a Payload from a plain dictionary."""
-        return cls(**data)
+        """Build a Payload from a plain dictionary, ignoring unknown fields."""
+        return cls._from_filtered(data)
+
+    @classmethod
+    def _from_filtered(cls, data: dict) -> "Payload":
+        """Build a Payload keeping only fields the dataclass accepts."""
+        known = {f.name for f in cls.__dataclass_fields__.values()}
+        return cls(**{k: v for k, v in data.items() if k in known})
 
     @classmethod
     def from_s3(cls, s3_storage, bucket: str, key: str) -> "Payload":
