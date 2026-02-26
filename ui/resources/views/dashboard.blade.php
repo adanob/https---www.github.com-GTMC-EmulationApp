@@ -100,6 +100,20 @@
   }
   .run-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
   .run-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; box-shadow:none; opacity:0.6; }
+  .launch-btn {
+    padding:13px; font-size:14px; font-weight:600; font-family:inherit;
+    background:linear-gradient(135deg,#10B981,#059669); border:none; border-radius:var(--radius);
+    color:#fff; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 20px rgba(16,185,129,0.3);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .launch-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 28px rgba(16,185,129,0.45); }
+  .launch-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; box-shadow:none; opacity:0.6; }
+  .launch-btn-sm {
+    background:none; border:1px solid rgba(16,185,129,0.4); color:var(--text-muted); font-size:13px;
+    padding:2px 6px; border-radius:6px; cursor:pointer; transition:all 0.15s; text-decoration:none;
+  }
+  .launch-btn-sm:hover { border-color:#10B981; color:#10B981; }
+  .btn-helpers-4 { display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:12px; margin-top:6px; }
   .btn-helpers-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; margin-top:6px; }
   .btn-helper { font-size:11px; color:var(--text-muted); text-align:center; }
   .btn-helper.ready { color:var(--green); }
@@ -559,7 +573,7 @@
 
       {{-- ── Actions ── --}}
       <div class="section">
-        <div class="btn-row-3">
+        <div style="display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:12px;">
           <button type="button" class="clear-btn" onclick="clearForm()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
             Clear All
@@ -572,11 +586,16 @@
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Run Job
           </button>
+          <button type="submit" name="action" value="save_and_launch" class="launch-btn" id="launchJobBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>
+            Launch Visible
+          </button>
         </div>
-        <div class="btn-helpers-3">
+        <div class="btn-helpers-4">
           <span class="btn-helper">&nbsp;</span>
           <span class="btn-helper" id="saveHelper">Saves your job configuration to jobs/</span>
-          <span class="btn-helper" id="runJobHelper">Select a navigation script to enable</span>
+          <span class="btn-helper" id="runJobHelper">Runs headless in background</span>
+          <span class="btn-helper" id="launchJobHelper">Downloads .bat — opens browser on your screen</span>
         </div>
       </div>
 
@@ -621,6 +640,7 @@
             @csrf
             <button type="submit" class="run-btn-sm">&#9654;</button>
           </form>
+          <a href="{{ route('payload.launch', $payload) }}" class="launch-btn-sm" title="Download .bat for visible browser">&#x1F680;</a>
           <form method="POST" action="{{ route('payload.destroy', $payload) }}" style="display:inline"
                 onsubmit="return confirm('Delete {{ $payload }}.json?')">
             @csrf @method('DELETE')
@@ -1085,7 +1105,9 @@
   // ── Validation ──────────────────────────────────────
   function checkRunReady() {
     var btn    = document.getElementById('runJobBtn');
+    var lbtn   = document.getElementById('launchJobBtn');
     var helper = document.getElementById('runJobHelper');
+    var lhelp  = document.getElementById('launchJobHelper');
     var saveH  = document.getElementById('saveHelper');
     var form   = document.getElementById('payloadForm');
     if (!form || !btn) return;
@@ -1096,18 +1118,22 @@
     var scriptVal  = scriptSel ? scriptSel.value : '';
     var devChecked = document.getElementById('devCheck').checked;
 
-    if (devChecked) {
+    function disableBoth(msg, cls) {
       btn.disabled = true;
-      helper.textContent = 'Save your configuration, then share it with your developer';
-      helper.className = 'btn-helper warning';
+      if (lbtn) lbtn.disabled = true;
+      helper.textContent = msg;
+      helper.className = 'btn-helper ' + (cls || 'warning');
+      if (lhelp) { lhelp.textContent = ''; lhelp.className = 'btn-helper'; }
+    }
+
+    if (devChecked) {
+      disableBoth('Save your configuration, then share it with your developer');
       saveH.textContent = 'Saves configuration for developer handoff';
       saveH.className = 'btn-helper ready';
       return;
     }
     if (currentMode === 'pagecast') {
-      btn.disabled = true;
-      helper.textContent = 'Record your navigation with PageCast first';
-      helper.className = 'btn-helper warning';
+      disableBoth('Record your navigation with PageCast first');
       saveH.textContent = 'Saves your job configuration to jobs/';
       saveH.className = 'btn-helper';
       return;
@@ -1118,13 +1144,13 @@
     else if (!scriptVal) missing.push('Navigation Script');
 
     if (missing.length > 0) {
-      btn.disabled = true;
-      helper.textContent = 'Missing: ' + missing.join(', ');
-      helper.className = 'btn-helper warning';
+      disableBoth('Missing: ' + missing.join(', '));
     } else {
       btn.disabled = false;
-      helper.textContent = 'Saves configuration then executes the job';
+      if (lbtn) lbtn.disabled = false;
+      helper.textContent = 'Runs headless in background';
       helper.className = 'btn-helper ready';
+      if (lhelp) { lhelp.textContent = 'Downloads .bat \u2014 opens browser on your screen'; lhelp.className = 'btn-helper ready'; }
     }
     saveH.textContent = 'Saves your job configuration to jobs/';
     saveH.className = 'btn-helper';
