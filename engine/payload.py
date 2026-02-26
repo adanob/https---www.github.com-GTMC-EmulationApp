@@ -43,7 +43,8 @@ class Payload:
     @classmethod
     def _from_filtered(cls, data: dict) -> "Payload":
         """Build a Payload keeping only fields the dataclass accepts."""
-        known = {f.name for f in cls.__dataclass_fields__.values()}
+        from dataclasses import fields as dc_fields
+        known = {f.name for f in dc_fields(cls)}
         return cls(**{k: v for k, v in data.items() if k in known})
 
     @classmethod
