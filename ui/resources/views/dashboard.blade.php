@@ -89,6 +89,15 @@
 
   /* Button Row */
   .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .btn-row-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; }
+  .clear-btn {
+    padding:13px 18px; font-size:14px; font-weight:600; font-family:inherit;
+    background:transparent; border:1px solid var(--border); border-radius:var(--radius);
+    color:var(--text-muted); cursor:pointer; transition:all 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .clear-btn:hover { border-color:var(--red); color:var(--red); background:rgba(248,113,113,0.08); }
+  .clear-btn svg { flex-shrink:0; }
   .save-btn {
     padding:13px; font-size:14px; font-weight:600; font-family:inherit;
     background:var(--bg-input); border:1px solid var(--border);
@@ -112,6 +121,7 @@
   }
   .run-btn svg { flex-shrink:0; }
   .btn-helpers { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  .btn-helpers-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; margin-top:6px; }
   .btn-helper { font-size:11px; color:var(--text-muted); text-align:center; }
   .btn-helper.ready { color:var(--green); }
   .btn-helper.warning { color:var(--amber); }
@@ -245,6 +255,11 @@
     justify-content:center;
   }
   .add-token-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+  .token-hint {
+    padding:10px 14px; margin-bottom:10px;
+    background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius);
+    font-size:12px; color:var(--green); line-height:1.5;
+  }
   .upload-submit {
     display:block; width:100%; margin-top:10px; padding:8px; font-size:13px; font-weight:600;
     font-family:inherit; background:var(--bg-input); border:1px solid var(--border);
@@ -363,89 +378,12 @@
     <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
       @csrf
 
-      <!-- Job Name -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">0</div>
-          <div class="section-title">Job Name</div>
-          <div class="section-subtitle">A name for this job configuration</div>
-        </div>
-        <div class="field">
-          <input class="field-input" type="text" name="payload_name"
-                 value="{{ old('payload_name', 'my_job') }}"
-                 placeholder="my_job" required
-                 pattern="[a-zA-Z0-9_\-]+">
-        </div>
-      </div>
-
-      <!-- Step 1: Target URL -->
+      <!-- Step 1: Navigation Script (moved from Step 4 to first) -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">1</div>
-          <div class="section-title">Target URL</div>
-          <div class="section-subtitle">Where should the browser navigate?</div>
-        </div>
-        <div class="field">
-          <input class="field-input" type="url" name="target_url"
-                 value="{{ old('target_url') }}"
-                 placeholder="https://portal.example.com/login" required>
-        </div>
-      </div>
-
-      <!-- Step 2: Credentials -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">2</div>
-          <div class="section-title">Credentials</div>
-          <div class="section-subtitle">Auto-encrypted on save</div>
-        </div>
-        <div class="cred-row">
-          <div class="field">
-            <label class="field-label">Username</label>
-            <input class="field-input" type="text" name="username"
-                   value="{{ old('username') }}"
-                   placeholder="user@company.com">
-          </div>
-          <div class="field">
-            <label class="field-label">Password</label>
-            <div class="password-wrap">
-              <input class="field-input" type="password" name="password"
-                     placeholder="Enter password">
-              <div class="encrypt-badge">ENCRYPTED</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Step 3: Tokens -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">3</div>
-          <div class="section-title">Data Tokens</div>
-          <div class="section-subtitle">Key-value pairs for the navigation script</div>
-        </div>
-        <table class="token-table" id="tokenTable">
-          <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><input class="field-input" name="token_keys[]" placeholder="account_name"></td>
-              <td><input class="field-input" name="token_values[]" placeholder="Acme Corp"></td>
-            </tr>
-          </tbody>
-        </table>
-        <button type="button" class="add-token-btn" onclick="addTokenRow()">+ Add Token</button>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Step 4: Navigation Script -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">4</div>
           <div class="section-title">Navigation Script</div>
-          <div class="section-subtitle">How should the browser navigate the site?</div>
+          <div class="section-subtitle">What should the browser do?</div>
         </div>
 
         <div class="script-options">
@@ -489,7 +427,7 @@
             </select>
           </div>
           @if(count($scripts) === 0)
-            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found in jobs/ folder.</div>
+            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found. Upload a .py file using the side panel.</div>
           @endif
         </div>
 
@@ -514,10 +452,90 @@
 
       <div class="divider"></div>
 
-      <!-- S3 Config (optional) -->
+      <!-- Step 2: Job Name -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">2</div>
+          <div class="section-title">Job Name</div>
+          <div class="section-subtitle">A name for this job configuration</div>
+        </div>
+        <div class="field">
+          <input class="field-input" type="text" name="payload_name"
+                 value="{{ old('payload_name', 'my_job') }}"
+                 placeholder="my_job" required
+                 pattern="[a-zA-Z0-9_\-]+">
+        </div>
+      </div>
+
+      <!-- Step 3: Target URL -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">3</div>
+          <div class="section-title">Target URL</div>
+          <div class="section-subtitle">Where should the browser navigate?</div>
+        </div>
+        <div class="field">
+          <input class="field-input" type="url" name="target_url"
+                 value="{{ old('target_url') }}"
+                 placeholder="https://portal.example.com/login" required>
+        </div>
+      </div>
+
+      <!-- Step 4: Credentials -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">4</div>
+          <div class="section-title">Credentials</div>
+          <div class="section-subtitle">Auto-encrypted on save</div>
+        </div>
+        <div class="cred-row">
+          <div class="field">
+            <label class="field-label">Username</label>
+            <input class="field-input" type="text" name="username"
+                   value="{{ old('username') }}"
+                   placeholder="user@company.com">
+          </div>
+          <div class="field">
+            <label class="field-label">Password</label>
+            <div class="password-wrap">
+              <input class="field-input" type="password" name="password"
+                     placeholder="Enter password">
+              <div class="encrypt-badge">ENCRYPTED</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Step 5: Tokens (auto-detected from script) -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">5</div>
+          <div class="section-title">Data Tokens</div>
+          <div class="section-subtitle" id="tokenSubtitle">Key-value pairs for the navigation script</div>
+        </div>
+        <div class="token-hint" id="tokenHint" style="display:none">
+          &#x2728; Token names were auto-detected from the selected script. Fill in the values.
+        </div>
+        <table class="token-table" id="tokenTable">
+          <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>
+              <td><input class="field-input" name="token_values[]" placeholder="value"></td>
+            </tr>
+          </tbody>
+        </table>
+        <button type="button" class="add-token-btn" onclick="addTokenRow()">+ Add Token</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Step 6: S3 Config (optional) -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">6</div>
           <div class="section-title">S3 Output</div>
           <div class="section-subtitle">Optional</div>
         </div>
@@ -541,7 +559,11 @@
 
       <!-- Actions -->
       <div class="section">
-        <div class="btn-row">
+        <div class="btn-row-3">
+          <button type="button" class="clear-btn" onclick="clearForm()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            Clear All
+          </button>
           <button type="submit" name="action" value="save" class="save-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             Save Configuration
@@ -551,7 +573,8 @@
             Run Job
           </button>
         </div>
-        <div class="btn-helpers">
+        <div class="btn-helpers-3">
+          <span class="btn-helper">&nbsp;</span>
           <span class="btn-helper" id="saveHelper">Saves your job configuration to jobs/</span>
           <span class="btn-helper" id="runJobHelper">Select a navigation script to enable</span>
         </div>
@@ -563,26 +586,26 @@
   <!-- ═══ SIDE PANEL ═══ -->
   <div class="side-panel">
 
-    <!-- Upload Payload -->
-    <div class="side-title">Upload Payload</div>
+    <!-- Upload Script or Configuration -->
+    <div class="side-title">Upload File</div>
     <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="uploadForm">
       @csrf
       <label class="upload-area" for="payloadFileInput">
-        <input type="file" id="payloadFileInput" name="payload_file" accept=".json" onchange="
+        <input type="file" id="payloadFileInput" name="payload_file" accept=".py,.json" onchange="
           var name = this.files[0] ? this.files[0].name : '';
-          document.getElementById('uploadFileName').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.json</strong> file or click to browse';
+          document.getElementById('uploadFileName').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.py</strong> or <strong>.json</strong> file';
         ">
         <div class="upload-area-icon">&#x1F4E4;</div>
-        <div class="upload-area-text" id="uploadFileName">Drop a <strong>.json</strong> file or click to browse</div>
+        <div class="upload-area-text" id="uploadFileName">Drop a <strong>.py</strong> or <strong>.json</strong> file</div>
       </label>
-      <button type="submit" class="upload-submit">Upload Payload</button>
-      <div class="btn-helper" style="margin-top:4px">Load an existing navigation script into the dashboard</div>
+      <button type="submit" class="upload-submit">Upload</button>
+      <div class="btn-helper" style="margin-top:4px">.py scripts appear in the Step 1 dropdown &nbsp;·&nbsp; .json files are loaded as configurations</div>
     </form>
 
     <div class="side-divider"></div>
 
-    <!-- Saved Payloads -->
-    <div class="side-title">Saved Payloads</div>
+    <!-- Saved Jobs -->
+    <div class="side-title">Saved Jobs</div>
 
     @forelse($payloads as $payload)
       <div class="payload-item">
@@ -713,15 +736,85 @@
     if (e.target === this) this.classList.remove('active');
   });
 
+  // ── Clear form ─────────────────────────────────────
+  function clearForm() {
+    if (!confirm('Clear all fields?')) return;
+    var form = document.getElementById('payloadForm');
+    if (!form) return;
+
+    // Reset text/url/password inputs
+    form.querySelectorAll('input[type="text"], input[type="url"], input[type="password"]').forEach(function(inp) {
+      if (inp.name === 'payload_name') { inp.value = 'my_job'; }
+      else { inp.value = ''; }
+    });
+
+    // Reset script selection
+    var scriptSel = document.getElementById('scriptSelect');
+    if (scriptSel) scriptSel.value = '';
+
+    // Reset script mode cards
+    currentMode = '';
+    document.getElementById('scriptModeInput').value = '';
+    document.getElementById('cardPagecast').classList.remove('active');
+    document.getElementById('cardExisting').classList.remove('active');
+    document.getElementById('panelPagecast').style.display = 'none';
+    document.getElementById('panelExisting').style.display = 'none';
+
+    // Reset developer checkbox
+    var dc = document.getElementById('devCheck');
+    dc.checked = false;
+    document.getElementById('devMsg').style.display = 'none';
+
+    // Reset tokens to one empty row
+    var tbody = document.querySelector('#tokenTable tbody');
+    tbody.innerHTML = '<tr>'
+      + '<td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
+      + '<td><input class="field-input" name="token_values[]" placeholder="value"></td>'
+      + '</tr>';
+    refreshTokenBorders();
+
+    // Hide token hint
+    document.getElementById('tokenHint').style.display = 'none';
+    document.getElementById('tokenSubtitle').textContent = 'Key-value pairs for the navigation script';
+
+    checkRunReady();
+  }
+
   // ── Token table ─────────────────────────────────────
-  function addTokenRow() {
+  function addTokenRow(keyName, valuePlaceholder) {
     var tbody = document.querySelector('#tokenTable tbody');
     var row = document.createElement('tr');
-    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key"></td>'
-                  + '<td><input class="field-input" name="token_values[]" placeholder="value"></td>';
+    var kn = keyName || '';
+    var vp = valuePlaceholder || 'value';
+    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + (kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '') + '></td>'
+                  + '<td><input class="field-input" name="token_values[]" placeholder="' + vp + '"></td>';
     tbody.appendChild(row);
     refreshTokenBorders();
-    row.querySelector('input').focus();
+    if (!kn) row.querySelector('input').focus();
+  }
+
+  function setTokensFromScript(tokenNames) {
+    var tbody = document.querySelector('#tokenTable tbody');
+    var hint  = document.getElementById('tokenHint');
+    var sub   = document.getElementById('tokenSubtitle');
+
+    if (!tokenNames || tokenNames.length === 0) {
+      hint.style.display = 'none';
+      sub.textContent = 'Key-value pairs for the navigation script';
+      return;
+    }
+
+    // Clear existing rows and rebuild with detected keys
+    tbody.innerHTML = '';
+    tokenNames.forEach(function(name) {
+      var row = document.createElement('tr');
+      row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
+                    + '<td><input class="field-input" name="token_values[]" placeholder="Enter value for ' + name + '"></td>';
+      tbody.appendChild(row);
+    });
+    refreshTokenBorders();
+    hint.style.display = 'block';
+    sub.textContent = tokenNames.length + ' token' + (tokenNames.length > 1 ? 's' : '') + ' detected from script';
   }
 
   function refreshTokenBorders() {
@@ -771,6 +864,19 @@
     checkRunReady();
   }
 
+  // ── Token auto-detection on script change ───────────
+  function fetchScriptTokens(scriptName) {
+    if (!scriptName) return;
+    fetch('/script/' + encodeURIComponent(scriptName) + '/tokens')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.tokens && data.tokens.length > 0) {
+          setTokensFromScript(data.tokens);
+        }
+      })
+      .catch(function() { /* silent */ });
+  }
+
   // ── Developer checkbox ──────────────────────────────
   var devCheck = document.getElementById('devCheck');
   var devMsg   = document.getElementById('devMsg');
@@ -804,7 +910,7 @@
       return;
     }
 
-    // PageCast mode: can save but not run yet (no script generated)
+    // PageCast mode: can save but not run yet
     if (currentMode === 'pagecast') {
       btn.disabled = true;
       helper.textContent = 'Record your navigation with PageCast first';
@@ -818,7 +924,7 @@
     var missing = [];
     if (!nameVal) missing.push('Job Name');
     if (!urlVal)  missing.push('Target URL');
-    if (currentMode !== 'existing') missing.push('Navigation Script (select a path above)');
+    if (currentMode !== 'existing') missing.push('Navigation Script (select a path in Step 1)');
     else if (!scriptVal) missing.push('Navigation Script');
 
     if (missing.length > 0) {
@@ -847,7 +953,10 @@
 
     var scriptSel = document.getElementById('scriptSelect');
     if (scriptSel) {
-      scriptSel.addEventListener('change', checkRunReady);
+      scriptSel.addEventListener('change', function() {
+        checkRunReady();
+        fetchScriptTokens(this.value);
+      });
     }
 
     // Initial state
