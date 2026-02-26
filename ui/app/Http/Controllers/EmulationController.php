@@ -50,8 +50,27 @@ class EmulationController extends Controller
             'payload_name'      => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
         ]);
 
+        // -- Load existing JSON if present (to preserve credentials / tokens) --
+        $filename = $validated['payload_name'] . '.json';
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
+        $existing = null;
+        if (file_exists($filepath)) {
+            $existing = json_decode(file_get_contents($filepath), true);
+        }
+
+        // Also check for a companion JSON matching the script name
+        if (!$existing && !empty($validated['script_path'])) {
+            $scriptBase = pathinfo($validated['script_path'], PATHINFO_FILENAME);
+            $companionPath = $this->jobsDir . DIRECTORY_SEPARATOR . $scriptBase . '.json';
+            if (file_exists($companionPath)) {
+                $existing = json_decode(file_get_contents($companionPath), true);
+            }
+        }
+
+        // -- Credentials: encrypt new ones, or preserve existing --
         $credentials = null;
         if (!empty($validated['username']) && !empty($validated['password'])) {
+            // User entered new credentials → encrypt them
             $credentials = $this->encryptCredentials(
                 $validated['username'],
                 $validated['password']
@@ -62,22 +81,41 @@ class EmulationController extends Controller
                     ->withInput()
                     ->withErrors(['credentials' => 'Encryption failed. Check .emulation_key file and PHP openssl extension.']);
             }
+        } elseif ($existing && !empty($existing['credentials'])) {
+            // User left fields blank → preserve existing encrypted credentials
+            $credentials = $existing['credentials'];
         }
 
+        // -- Tokens --
         $tokens = $this->parseTokenArrays(
             $validated['token_keys'] ?? [],
             $validated['token_values'] ?? []
         );
 
-        // Also inject target_url into tokens so scripts can use tokens["target_url"]
-        if (!empty($validated['target_url'])) {
-            $tokens['target_url'] = $validated['target_url'];
+        // Inject target_url into tokens so scripts can use tokens["target_url"]
+        $targetUrl = $validated['target_url'] ?? null;
+
+        // If target_url is blank, try to preserve from existing
+        if (empty($targetUrl) && $existing && !empty($existing['target_url'])) {
+            $targetUrl = $existing['target_url'];
+        }
+
+        if (!empty($targetUrl)) {
+            $tokens['target_url'] = $targetUrl;
+        }
+
+        // Merge with existing token values for any keys that were left blank
+        if ($existing && !empty($existing['tokens']) && is_array($existing['tokens'])) {
+            foreach ($existing['tokens'] as $k => $v) {
+                if (!isset($tokens[$k]) || $tokens[$k] === '') {
+                    $tokens[$k] = $v;
+                }
+            }
         }
 
         $needsDeveloper = !empty($validated['needs_developer']);
         $scriptMode     = $validated['script_mode'] ?? '';
 
-        // Determine the status of the configuration
         $status = 'ready';
         if ($needsDeveloper) {
             $status = 'needs_developer';
@@ -88,7 +126,7 @@ class EmulationController extends Controller
         }
 
         $payload = [
-            'target_url'       => $validated['target_url'],
+            'target_url'       => $targetUrl,
             'script_path'      => $validated['script_path'] ?? null,
             'script_mode'      => $scriptMode,
             'status'           => $status,
@@ -99,9 +137,6 @@ class EmulationController extends Controller
         ];
 
         $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
-
-        $filename = $validated['payload_name'] . '.json';
-        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
 
         file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
@@ -339,6 +374,10 @@ class EmulationController extends Controller
 
     /**
      * POST /payload/{name}/run - Execute a payload via runner.py.
+     *
+     * On Windows, uses proc_open with create_new_console so the
+     * browser window is visible on the user's desktop (not hidden
+     * inside Apache's service session).
      */
     public function run(string $name)
     {
@@ -352,19 +391,57 @@ class EmulationController extends Controller
 
         try {
             $startTime = microtime(true);
-
             $uv = $this->getUvCommand();
 
-            $result = Process::path($this->appRoot)
-                ->timeout(300)
-                ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
+            if (PHP_OS_FAMILY === 'Windows') {
+                // On Windows, proc_open with create_new_console ensures the
+                // browser opens on the user's desktop instead of Session 0.
+                $cmd = escapeshellarg($uv) . ' run python run.py ' . escapeshellarg($relativePath);
+
+                $descriptors = [
+                    0 => ['pipe', 'r'],   // stdin
+                    1 => ['pipe', 'w'],   // stdout
+                    2 => ['pipe', 'w'],   // stderr
+                ];
+
+                $proc = proc_open(
+                    $cmd,
+                    $descriptors,
+                    $pipes,
+                    $this->appRoot,
+                    null,
+                    ['create_new_console' => true]
+                );
+
+                if (!is_resource($proc)) {
+                    throw new \RuntimeException("Failed to launch runner process.");
+                }
+
+                fclose($pipes[0]); // close stdin
+
+                // Read output (blocks until process completes)
+                $stdout = stream_get_contents($pipes[1]);
+                $stderr = stream_get_contents($pipes[2]);
+
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+
+                $exitCode = proc_close($proc);
+
+                $output  = $stdout . "\n" . $stderr;
+                $success = ($exitCode === 0) && !str_contains($output, '"status": "error"');
+
+            } else {
+                // Unix: standard Laravel Process
+                $result = Process::path($this->appRoot)
+                    ->timeout(300)
+                    ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
+
+                $output  = $result->output() . "\n" . $result->errorOutput();
+                $success = $result->successful() && !str_contains($output, '"status": "error"');
+            }
 
             $elapsed = round(microtime(true) - $startTime);
-            $output  = $result->output() . "\n" . $result->errorOutput();
-
-            // Check both exit code and output for failure indicators
-            $success = $result->successful()
-                && !str_contains($output, '"status": "error"');
 
             $logEntries  = $this->parseLogOutput($output);
             $statusText  = $success
