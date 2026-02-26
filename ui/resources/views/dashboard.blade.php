@@ -38,18 +38,16 @@
   .topbar-title { font-size:15px; font-weight:600; }
   .topbar-title span { color:var(--text-muted); font-weight:400; }
   .topbar-right { display:flex; align-items:center; gap:8px; }
-  .topbar-btn {
-    background:transparent; border:1px solid var(--border); color:var(--text-secondary);
-    padding:6px 12px; border-radius:8px; font-size:13px; font-family:inherit;
-    cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;
+  .gear-btn {
+    width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center;
+    border-radius:8px; background:transparent; border:1px solid var(--border); color:var(--text-secondary);
+    cursor:pointer; transition:all 0.15s;
   }
-  .topbar-btn:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-muted); }
-  .topbar-btn svg { width:15px; height:15px; }
-  .gear-btn { width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+  .gear-btn:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-muted); }
   .gear-btn svg { width:18px; height:18px; }
 
   /* Layout */
-  .layout { display:grid; grid-template-columns:1fr 360px; min-height:calc(100vh - 56px); }
+  .layout { display:grid; grid-template-columns:1fr 400px; min-height:calc(100vh - 56px); }
   .main-panel { padding:28px 32px; overflow-y:auto; }
   .side-panel { background:var(--bg-secondary); border-left:1px solid var(--border); padding:24px; overflow-y:auto; }
 
@@ -63,16 +61,15 @@
   /* Inputs */
   .field { margin-bottom:10px; }
   .field-label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px; }
-  .field-input, .field-select, .field-textarea {
+  .field-input, .field-select {
     width:100%; padding:9px 13px; font-size:14px; font-family:inherit;
     background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
     color:var(--text-primary); outline:none; transition:border-color 0.15s;
   }
-  .field-input:focus, .field-select:focus, .field-textarea:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-glow); }
-  .field-input::placeholder, .field-textarea::placeholder { color:var(--text-muted); }
+  .field-input:focus, .field-select:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-glow); }
+  .field-input::placeholder { color:var(--text-muted); }
   .field-select { appearance:none; cursor:pointer; }
   .field-select option { background:var(--bg-input); color:var(--text-primary); }
-  .field-textarea { min-height:100px; resize:vertical; font-family:'Consolas','Courier New',monospace; font-size:13px; }
 
   /* Credential Row */
   .cred-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -88,7 +85,6 @@
   .divider { height:1px; background:var(--border); margin:4px 0 16px; }
 
   /* Button Row */
-  .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .btn-row-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; }
   .clear-btn {
     padding:13px 18px; font-size:14px; font-weight:600; font-family:inherit;
@@ -97,30 +93,21 @@
     display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .clear-btn:hover { border-color:var(--red); color:var(--red); background:rgba(248,113,113,0.08); }
-  .clear-btn svg { flex-shrink:0; }
   .save-btn {
     padding:13px; font-size:14px; font-weight:600; font-family:inherit;
-    background:var(--bg-input); border:1px solid var(--border);
-    border-radius:var(--radius);
+    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
     color:var(--text-primary); cursor:pointer; transition:all 0.2s;
     display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .save-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-  .save-btn svg { flex-shrink:0; }
   .run-btn {
     padding:13px; font-size:14px; font-weight:600; font-family:inherit;
-    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none;
-    border-radius:var(--radius);
+    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
     color:#fff; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 20px rgba(108,114,255,0.3);
     display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .run-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
-  .run-btn:disabled {
-    background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed;
-    box-shadow:none; opacity:0.6;
-  }
-  .run-btn svg { flex-shrink:0; }
-  .btn-helpers { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  .run-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; box-shadow:none; opacity:0.6; }
   .btn-helpers-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; margin-top:6px; }
   .btn-helper { font-size:11px; color:var(--text-muted); text-align:center; }
   .btn-helper.ready { color:var(--green); }
@@ -142,8 +129,7 @@
   /* PageCast CTA */
   .pagecast-cta {
     display:flex; align-items:center; gap:14px; padding:16px;
-    background:var(--bg-input); border:1px solid var(--border);
-    border-radius:var(--radius);
+    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
   }
   .pagecast-cta-icon { font-size:24px; flex-shrink:0; }
   .pagecast-cta-body { flex:1; }
@@ -151,8 +137,7 @@
   .pagecast-cta-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
   .pagecast-launch-btn {
     flex-shrink:0; padding:10px 18px; font-size:13px; font-weight:600; font-family:inherit;
-    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none;
-    border-radius:var(--radius);
+    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
     color:#fff; cursor:pointer; display:flex; align-items:center; gap:6px;
     transition:all 0.2s; box-shadow:0 2px 12px rgba(108,114,255,0.3); white-space:nowrap;
   }
@@ -168,16 +153,12 @@
     width:18px; height:18px; border:1.5px solid var(--border); border-radius:4px;
     background:var(--bg-input); flex-shrink:0; position:relative; transition:all 0.15s;
   }
-  .developer-check input:checked ~ .developer-check-box {
-    background:var(--accent); border-color:var(--accent);
-  }
+  .developer-check input:checked ~ .developer-check-box { background:var(--accent); border-color:var(--accent); }
   .developer-check input:checked ~ .developer-check-box::after {
     content:''; position:absolute; top:2px; left:5px; width:5px; height:9px;
     border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
   }
   .developer-check:hover .developer-check-box { border-color:var(--accent); }
-
-  /* Developer Message */
   .developer-msg {
     display:flex; align-items:flex-start; gap:12px; margin-top:12px;
     padding:14px; background:var(--amber-bg); border:1px solid var(--amber-border);
@@ -185,6 +166,23 @@
   }
   .developer-msg-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
   .developer-msg-body strong { color:var(--text-primary); }
+
+  /* Inline upload in Step 1 */
+  .upload-inline {
+    margin-top:12px; display:flex; align-items:center; gap:12px;
+    padding:12px 16px; background:var(--bg-input); border:1px dashed var(--border);
+    border-radius:var(--radius); transition:all 0.15s; position:relative; cursor:pointer;
+  }
+  .upload-inline:hover { border-color:var(--accent); background:var(--bg-hover); }
+  .upload-inline-icon { font-size:18px; flex-shrink:0; }
+  .upload-inline-text { font-size:13px; color:var(--text-muted); flex:1; }
+  .upload-inline-text strong { color:var(--text-secondary); }
+  .upload-inline-btn {
+    flex-shrink:0; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit;
+    background:var(--bg-card); border:1px solid var(--border); border-radius:8px;
+    color:var(--text-primary); cursor:pointer; transition:all 0.15s;
+  }
+  .upload-inline-btn:hover { border-color:var(--accent); color:var(--accent); }
 
   /* Alerts */
   .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
@@ -195,11 +193,46 @@
   .side-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
   .side-divider { height:1px; background:var(--border); margin:16px 0; }
 
-  /* Payload Items */
+  /* Script Preview */
+  .script-preview {
+    background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius);
+    margin-bottom:4px; overflow:hidden;
+  }
+  .script-preview-header {
+    display:flex; align-items:center; gap:6px; padding:10px 14px;
+    border-bottom:1px solid var(--border); background:var(--bg-card);
+  }
+  .script-preview-dot { width:8px; height:8px; border-radius:50%; }
+  .script-preview-dot.r { background:#FF5F56; }
+  .script-preview-dot.y { background:#FFBD2E; }
+  .script-preview-dot.g { background:#27C93F; }
+  .script-preview-name {
+    font-family:'Consolas','Courier New',monospace; font-size:12px;
+    color:var(--text-secondary); margin-left:6px; flex:1;
+  }
+  .script-preview-badge {
+    font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px;
+    background:var(--green-bg); border:1px solid var(--green-border); color:var(--green);
+  }
+  .script-preview-code {
+    padding:14px 16px; margin:0;
+    font-family:'Consolas','Courier New',monospace; font-size:11.5px;
+    color:var(--text-muted); max-height:320px; overflow-y:auto; white-space:pre;
+    line-height:1.7; tab-size:4; background:transparent; border:none;
+  }
+  .script-preview-code .tok-ref { color:var(--green); font-weight:600; }
+  .script-preview-code .tok-str { color:#C792EA; }
+  .script-preview-code .tok-kw { color:#82AAFF; }
+  .script-preview-code .tok-cm { color:#546E7A; font-style:italic; }
+  .script-preview-empty {
+    padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px; line-height:1.6;
+  }
+  .script-preview-empty-icon { font-size:28px; margin-bottom:8px; opacity:0.5; }
+
+  /* Payload / Saved Jobs */
   .payload-item {
     display:flex; align-items:center; gap:8px; padding:10px 12px;
-    background:var(--bg-card); border:1px solid var(--border);
-    border-radius:var(--radius);
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
     margin-bottom:6px; font-size:13px; transition:border-color 0.15s;
   }
   .payload-item:hover { border-color:var(--text-muted); }
@@ -213,21 +246,8 @@
   }
   .payload-actions a:hover, .payload-actions button:hover { border-color:var(--accent); color:var(--accent); }
   .payload-actions button.delete-btn:hover { border-color:var(--red); color:var(--red); }
-  .payload-actions button.run-btn-sm { }
   .payload-actions button.run-btn-sm:hover { border-color:var(--green); color:var(--green); }
   .empty-state { color:var(--text-muted); font-size:13px; padding:20px 0; text-align:center; }
-
-  /* Upload Area */
-  .upload-area {
-    border:1px dashed var(--border);
-    border-radius:var(--radius);
-    padding:16px; text-align:center; cursor:pointer; transition:all 0.15s; position:relative; display:block;
-  }
-  .upload-area:hover { border-color:var(--accent); background:var(--accent-glow); }
-  .upload-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-  .upload-area-icon { font-size:24px; margin-bottom:6px; }
-  .upload-area-text { font-size:12px; color:var(--text-muted); }
-  .upload-area-text strong { color:var(--text-secondary); }
 
   /* Token Table */
   .token-table { width:100%; border-collapse:separate; border-spacing:0; }
@@ -248,11 +268,9 @@
   .token-table td:last-child .field-input { border-right:1px solid var(--border); }
   .add-token-btn {
     display:flex; align-items:center; gap:6px; margin-top:10px;
-    background:transparent; border:1px dashed var(--border);
-    border-radius:var(--radius);
+    background:transparent; border:1px dashed var(--border); border-radius:var(--radius);
     color:var(--text-muted); font-size:13px; font-family:inherit;
-    padding:8px 14px; cursor:pointer; transition:all 0.15s; width:100%;
-    justify-content:center;
+    padding:8px 14px; cursor:pointer; transition:all 0.15s; width:100%; justify-content:center;
   }
   .add-token-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
   .token-hint {
@@ -260,13 +278,36 @@
     background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius);
     font-size:12px; color:var(--green); line-height:1.5;
   }
-  .upload-submit {
-    display:block; width:100%; margin-top:10px; padding:8px; font-size:13px; font-weight:600;
-    font-family:inherit; background:var(--bg-input); border:1px solid var(--border);
-    border-radius:var(--radius);
-    color:var(--text-primary); cursor:pointer; transition:all 0.15s;
+  .token-url-row {
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
   }
-  .upload-submit:hover { border-color:var(--accent); color:var(--accent); }
+  .token-url-label {
+    font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase;
+    letter-spacing:0.5px; display:flex; align-items:center; gap:6px; margin-bottom:6px;
+  }
+  .token-url-label .req { color:var(--red); font-weight:700; }
+
+  /* Job Log */
+  .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .dot-idle { background:var(--text-muted); }
+  .log-entries { display:flex; flex-direction:column; gap:0; }
+  .log-entry {
+    display:grid; grid-template-columns:64px 24px 1fr; gap:8px; align-items:start;
+    padding:10px 0; border-top:1px solid var(--border);
+  }
+  .log-entry:last-child { border-bottom:1px solid var(--border); }
+  .log-time { font-family:'Consolas','Courier New',monospace; font-size:12px; color:var(--text-muted); padding-top:1px; }
+  .log-icon { font-size:14px; text-align:center; padding-top:1px; }
+  .log-text { font-size:13px; color:var(--green); line-height:1.5; }
+  .log-text strong { color:#6EE7B7; font-weight:600; }
+  .log-status {
+    display:flex; align-items:center; gap:8px; margin-top:12px;
+    padding:10px 14px; border-radius:var(--radius); font-size:13px; font-weight:500;
+  }
+  .log-status-ok { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
+  .log-status-fail { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
 
   /* Modal Overlay */
   .modal-overlay {
@@ -287,13 +328,11 @@
   .modal-close:hover { color:var(--text-primary); background:var(--bg-hover); }
   .modal-btn {
     width:100%; padding:11px; font-size:14px; font-weight:600; font-family:inherit;
-    background:var(--accent); border:none;
-    border-radius:var(--radius);
+    background:var(--accent); border:none; border-radius:var(--radius);
     color:#fff; cursor:pointer; transition:all 0.15s; margin-top:16px;
   }
   .modal-btn:hover { background:#8186FF; }
 
-  /* uv Install Help */
   .uv-install-help { margin-top:8px; }
   .install-steps {
     margin-top:8px; padding:12px; background:var(--bg-primary);
@@ -305,32 +344,6 @@
     border-radius:6px; font-family:'Consolas','Courier New',monospace; font-size:12px;
     color:var(--green); word-break:break-all; user-select:all; cursor:text;
   }
-
-  /* Job Log */
-  .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-  .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
-  .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
-  .dot-idle { background:var(--text-muted); }
-  .log-entries { display:flex; flex-direction:column; gap:0; }
-  .log-entry {
-    display:grid; grid-template-columns:64px 24px 1fr; gap:8px; align-items:start;
-    padding:10px 0; border-top:1px solid var(--border);
-  }
-  .log-entry:last-child { border-bottom:1px solid var(--border); }
-  .log-time {
-    font-family:'Consolas','Courier New',monospace; font-size:12px;
-    color:var(--text-muted); padding-top:1px;
-  }
-  .log-icon { font-size:14px; text-align:center; padding-top:1px; }
-  .log-text { font-size:13px; color:var(--green); line-height:1.5; }
-  .log-text strong { color:#6EE7B7; font-weight:600; }
-  .log-status {
-    display:flex; align-items:center; gap:8px; margin-top:12px;
-    padding:10px 14px; border-radius:var(--radius); font-size:13px; font-weight:500;
-  }
-  .log-status-ok { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
-  .log-status-fail { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
-  .log-status-icon { font-size:14px; }
 
   @media (max-width:900px) {
     .layout { grid-template-columns:1fr; }
@@ -348,7 +361,7 @@
     <div class="topbar-title">EmulationApp <span>/ Dashboard</span></div>
   </div>
   <div class="topbar-right">
-    <button class="topbar-btn gear-btn" title="Settings" onclick="document.getElementById('settingsModal').classList.add('active')">
+    <button class="gear-btn" title="Settings" onclick="document.getElementById('settingsModal').classList.add('active')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
         <circle cx="12" cy="12" r="3"/>
@@ -358,27 +371,22 @@
 </div>
 
 <div class="layout">
-  <!-- ═══ MAIN PANEL ═══ -->
+  <!-- MAIN PANEL -->
   <div class="main-panel">
 
     @if(session('success'))
       <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-
     @if($errors->any())
       <div class="alert alert-error">
-        @foreach($errors->all() as $error)
-          {{ $error }}<br>
-        @endforeach
+        @foreach($errors->all() as $error) {{ $error }}<br> @endforeach
       </div>
     @endif
-
-
 
     <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
       @csrf
 
-      <!-- Step 1: Navigation Script (moved from Step 4 to first) -->
+      <!-- Step 1: Navigation Script -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">1</div>
@@ -405,11 +413,11 @@
             <div class="pagecast-cta-icon">&#x23FA;</div>
             <div class="pagecast-cta-body">
               <div class="pagecast-cta-title">Create your navigation script with PageCast</div>
-              <div class="pagecast-cta-desc">PageCast will open a browser to the Target URL above. Perform the steps you want to record, then click Stop. Your script will be saved automatically.</div>
+              <div class="pagecast-cta-desc">PageCast will open a browser. Perform the steps you want to record, then click Stop.</div>
             </div>
             <button type="button" class="pagecast-launch-btn" onclick="alert('PageCast recording will launch here.')">
               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Launch PageCast
+              Launch
             </button>
           </div>
         </div>
@@ -420,30 +428,42 @@
             <select class="field-select" name="script_path" id="scriptSelect">
               <option value="">-- Select a script --</option>
               @foreach($scripts as $script)
-                <option value="{{ $script }}" {{ old('script_path') === $script ? 'selected' : '' }}>
-                  {{ $script }}
-                </option>
+                <option value="{{ $script }}" {{ old('script_path') === $script ? 'selected' : '' }}>{{ $script }}</option>
               @endforeach
             </select>
           </div>
           @if(count($scripts) === 0)
-            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found. Upload a .py file using the side panel.</div>
+            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found. Upload a .py file below.</div>
           @endif
         </div>
 
-        <!-- Developer handoff checkbox -->
-        <label class="developer-check" id="devCheckLabel">
+        <!-- Inline .py / .json upload -->
+        <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="inlineUploadForm">
+          @csrf
+          <label class="upload-inline" for="inlineFileInput">
+            <input type="file" name="payload_file" accept=".py,.json" id="inlineFileInput"
+                   style="position:absolute;inset:0;opacity:0;cursor:pointer"
+                   onchange="handleInlineUpload(this)">
+            <div class="upload-inline-icon">&#x2B06;&#xFE0F;</div>
+            <div class="upload-inline-text" id="inlineUploadText">
+              Or <strong>upload a .py script</strong> or <strong>.json config</strong>
+            </div>
+            <button type="submit" class="upload-inline-btn" id="inlineUploadBtn" style="display:none"
+                    onclick="event.stopPropagation()">Upload</button>
+          </label>
+        </form>
+
+        <!-- Developer handoff -->
+        <label class="developer-check">
           <input type="checkbox" name="needs_developer" id="devCheck" value="1" {{ old('needs_developer') ? 'checked' : '' }}>
           <span class="developer-check-box"></span>
-          <span class="developer-check-text">I need a developer to write the navigation script for me</span>
+          <span>I need a developer to write the navigation script for me</span>
         </label>
-
-        <!-- Developer message (shown when checked) -->
         <div class="developer-msg" id="devMsg" style="display:none">
           <div class="developer-msg-icon">&#x1F6E0;&#xFE0F;</div>
           <div class="developer-msg-body">
             <strong>Developer assistance requested</strong><br>
-            Save your configuration, then share the generated JSON file with your developer. They will write the navigation script and add it to the jobs/ folder.
+            Save your configuration, then share the generated JSON file with your developer.
           </div>
         </div>
 
@@ -462,29 +482,14 @@
         <div class="field">
           <input class="field-input" type="text" name="payload_name"
                  value="{{ old('payload_name', 'my_job') }}"
-                 placeholder="my_job" required
-                 pattern="[a-zA-Z0-9_\-]+">
+                 placeholder="my_job" required pattern="[a-zA-Z0-9_\-]+">
         </div>
       </div>
 
-      <!-- Step 3: Target URL -->
+      <!-- Step 3: Credentials -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">3</div>
-          <div class="section-title">Target URL</div>
-          <div class="section-subtitle">Where should the browser navigate?</div>
-        </div>
-        <div class="field">
-          <input class="field-input" type="url" name="target_url"
-                 value="{{ old('target_url') }}"
-                 placeholder="https://portal.example.com/login" required>
-        </div>
-      </div>
-
-      <!-- Step 4: Credentials -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">4</div>
           <div class="section-title">Credentials</div>
           <div class="section-subtitle">Auto-encrypted on save</div>
         </div>
@@ -492,14 +497,12 @@
           <div class="field">
             <label class="field-label">Username</label>
             <input class="field-input" type="text" name="username"
-                   value="{{ old('username') }}"
-                   placeholder="user@company.com">
+                   value="{{ old('username') }}" placeholder="user@company.com">
           </div>
           <div class="field">
             <label class="field-label">Password</label>
             <div class="password-wrap">
-              <input class="field-input" type="password" name="password"
-                     placeholder="Enter password">
+              <input class="field-input" type="password" name="password" placeholder="Enter password">
               <div class="encrypt-badge">ENCRYPTED</div>
             </div>
           </div>
@@ -508,16 +511,28 @@
 
       <div class="divider"></div>
 
-      <!-- Step 5: Tokens (auto-detected from script) -->
+      <!-- Step 4: Script Configuration -->
       <div class="section">
         <div class="section-header">
-          <div class="section-number">5</div>
-          <div class="section-title">Data Tokens</div>
-          <div class="section-subtitle" id="tokenSubtitle">Key-value pairs for the navigation script</div>
+          <div class="section-number">4</div>
+          <div class="section-title">Script Configuration</div>
+          <div class="section-subtitle" id="tokenSubtitle">Values your script needs to run</div>
         </div>
+
         <div class="token-hint" id="tokenHint" style="display:none">
-          &#x2728; Token names were auto-detected from the selected script. Fill in the values.
+          &#x2728; Token names were auto-detected from the selected script. Fill in the values below.
         </div>
+
+        <!-- Target URL (mandatory, always first) -->
+        <div class="token-url-label">&#x1F310; Target URL <span class="req">*</span></div>
+        <div class="field" style="margin-bottom:16px">
+          <input class="field-input" type="url" name="target_url" id="targetUrlInput"
+                 value="{{ old('target_url') }}"
+                 placeholder="https://portal.example.com/login" required
+                 style="border-color:var(--accent);background:rgba(108,114,255,0.06)">
+        </div>
+
+        <!-- Additional tokens -->
         <table class="token-table" id="tokenTable">
           <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
           <tbody>
@@ -532,10 +547,10 @@
 
       <div class="divider"></div>
 
-      <!-- Step 6: S3 Config (optional) -->
+      <!-- Step 5: S3 Output -->
       <div class="section">
         <div class="section-header">
-          <div class="section-number">6</div>
+          <div class="section-number">5</div>
           <div class="section-title">S3 Output</div>
           <div class="section-subtitle">Optional</div>
         </div>
@@ -543,14 +558,12 @@
           <div class="field">
             <label class="field-label">Bucket</label>
             <input class="field-input" type="text" name="s3_output_bucket"
-                   value="{{ old('s3_output_bucket') }}"
-                   placeholder="my-emulation-bucket">
+                   value="{{ old('s3_output_bucket') }}" placeholder="my-emulation-bucket">
           </div>
           <div class="field">
             <label class="field-label">Prefix</label>
             <input class="field-input" type="text" name="s3_output_prefix"
-                   value="{{ old('s3_output_prefix') }}"
-                   placeholder="results/acme/2026-01/">
+                   value="{{ old('s3_output_prefix') }}" placeholder="results/acme/2026-01/">
           </div>
         </div>
       </div>
@@ -583,46 +596,50 @@
     </form>
   </div>
 
-  <!-- ═══ SIDE PANEL ═══ -->
+  <!-- SIDE PANEL -->
   <div class="side-panel">
 
-    <!-- Upload Script or Configuration -->
-    <div class="side-title">Upload File</div>
-    <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="uploadForm">
-      @csrf
-      <label class="upload-area" for="payloadFileInput">
-        <input type="file" id="payloadFileInput" name="payload_file" accept=".py,.json" onchange="
-          var name = this.files[0] ? this.files[0].name : '';
-          document.getElementById('uploadFileName').innerHTML = name ? '<strong>' + name + '</strong> selected' : 'Drop a <strong>.py</strong> or <strong>.json</strong> file';
-        ">
-        <div class="upload-area-icon">&#x1F4E4;</div>
-        <div class="upload-area-text" id="uploadFileName">Drop a <strong>.py</strong> or <strong>.json</strong> file</div>
-      </label>
-      <button type="submit" class="upload-submit">Upload</button>
-      <div class="btn-helper" style="margin-top:4px">.py scripts appear in the Step 1 dropdown &nbsp;·&nbsp; .json files are loaded as configurations</div>
-    </form>
+    <!-- Script Preview -->
+    <div class="side-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12l-2 2 2 2"/><path d="M14 12l2 2-2 2"/></svg>
+      Script Preview
+    </div>
+
+    <div class="script-preview" id="scriptPreview">
+      <div class="script-preview-header" id="scriptPreviewHeader" style="display:none">
+        <span class="script-preview-dot r"></span>
+        <span class="script-preview-dot y"></span>
+        <span class="script-preview-dot g"></span>
+        <span class="script-preview-name" id="scriptPreviewName"></span>
+        <span class="script-preview-badge" id="scriptPreviewBadge" style="display:none"></span>
+      </div>
+      <div id="scriptPreviewBody">
+        <div class="script-preview-empty">
+          <div class="script-preview-empty-icon">&#x1F4C4;</div>
+          Select a navigation script in Step 1<br>to see a preview here
+        </div>
+      </div>
+    </div>
 
     <div class="side-divider"></div>
 
     <!-- Saved Jobs -->
     <div class="side-title">Saved Jobs</div>
-
     @forelse($payloads as $payload)
       <div class="payload-item">
         <span class="payload-icon">&#x1F4C4;</span>
         <span class="payload-name">{{ $payload }}.json</span>
         <div class="payload-actions">
-          <a href="{{ route('payload.show', $payload) }}" target="_blank" title="View the raw JSON payload">View</a>
+          <a href="{{ route('payload.show', $payload) }}" target="_blank">View</a>
           <form method="POST" action="{{ route('payload.run', $payload) }}" style="display:inline"
                 onsubmit="return confirm('Run {{ $payload }}.json now?')">
             @csrf
-            <button type="submit" class="run-btn-sm" title="Execute this payload with runner.py">&#9654;</button>
+            <button type="submit" class="run-btn-sm">&#9654;</button>
           </form>
           <form method="POST" action="{{ route('payload.destroy', $payload) }}" style="display:inline"
                 onsubmit="return confirm('Delete {{ $payload }}.json?')">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="delete-btn" title="Permanently remove this payload file">&#x2715;</button>
+            @csrf @method('DELETE')
+            <button type="submit" class="delete-btn">&#x2715;</button>
           </form>
         </div>
       </div>
@@ -641,7 +658,6 @@
       @endif
       Job Log
     </div>
-
     @if(session('job_log'))
       <div class="log-entries">
         @foreach(session('job_log') as $entry)
@@ -652,19 +668,18 @@
           </div>
         @endforeach
       </div>
-
       <div class="log-status {{ session('job_success') ? 'log-status-ok' : 'log-status-fail' }}">
-        <span class="log-status-icon">{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
-        <span class="log-status-text">{{ session('job_status_text', 'Job finished') }}</span>
+        <span>{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
+        <span>{{ session('job_status_text', 'Job finished') }}</span>
       </div>
     @else
-      <div class="empty-state">Run a payload to see the job log here.</div>
+      <div class="empty-state">Run a job to see the log here.</div>
     @endif
 
   </div>
 </div>
 
-<!-- ═══ SETTINGS MODAL ═══ -->
+<!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-title">
@@ -675,33 +690,27 @@
       Settings
       <button class="modal-close" onclick="document.getElementById('settingsModal').classList.remove('active')">&times;</button>
     </div>
-
     <form method="POST" action="{{ route('settings.save') }}">
       @csrf
-
       <div class="field">
         <label class="field-label">Path to uv</label>
         <input class="field-input" type="text" name="uv_path"
-               value="{{ $settings['uv_path'] ?? '' }}"
-               placeholder="Not detected"
-               style="font-family:'Consolas','Courier New',monospace; font-size:13px;">
+               value="{{ $settings['uv_path'] ?? '' }}" placeholder="Not detected"
+               style="font-family:'Consolas','Courier New',monospace;font-size:13px;">
         @if(!empty($settings['uv_path']) && file_exists($settings['uv_path']))
           <div class="btn-helper ready" style="margin-top:4px;text-align:left">&#x2705; Detected at {{ $settings['uv_path'] }}</div>
         @elseif(!empty($settings['uv_path']))
-          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; File not found at this path. Reinstall or correct the path below.</div>
+          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; File not found at this path.</div>
         @else
           <div class="uv-install-help">
-            <div class="btn-helper warning" style="text-align:left">&#x26A0;&#xFE0F; uv not found. Install it, then refresh this page.</div>
+            <div class="btn-helper warning" style="text-align:left">&#x26A0;&#xFE0F; uv not found. Install it, then refresh.</div>
             <div class="install-steps">
               <div class="install-step-label">Open PowerShell and run:</div>
               <code class="install-cmd">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
-              <div class="install-step-label" style="margin-top:8px">This installs uv to:</div>
-              <code class="install-cmd">C:\Users\&lt;you&gt;\.local\bin\uv.exe</code>
             </div>
           </div>
         @endif
       </div>
-
       <div class="field" style="margin-top:12px">
         <label class="field-label">Browser Driver</label>
         <select class="field-select" name="driver">
@@ -709,28 +718,22 @@
           <option value="playwright" {{ ($settings['driver'] ?? '') === 'playwright' ? 'selected' : '' }}>Playwright (Chromium)</option>
         </select>
       </div>
-
       <div class="field" style="margin-top:12px">
         <label class="field-label">Default S3 Output Bucket</label>
         <input class="field-input" type="text" name="s3_output_bucket"
-               value="{{ $settings['s3_output_bucket'] ?? '' }}"
-               placeholder="my-emulation-bucket">
+               value="{{ $settings['s3_output_bucket'] ?? '' }}" placeholder="my-emulation-bucket">
       </div>
-
       <div class="field" style="margin-top:12px">
         <label class="field-label">Default S3 Output Prefix</label>
         <input class="field-input" type="text" name="s3_output_prefix"
-               value="{{ $settings['s3_output_prefix'] ?? '' }}"
-               placeholder="results/">
+               value="{{ $settings['s3_output_prefix'] ?? '' }}" placeholder="results/">
       </div>
-
       <button type="submit" class="modal-btn">Save Settings</button>
-      <div class="btn-helper" style="margin-top:6px">Persists to .emulation_settings.json in the project root</div>
     </form>
   </div>
 </div>
 
-<!-- Close modal on overlay click + Token table + Script branching + Validation -->
+<!-- SCRIPTS -->
 <script>
   document.getElementById('settingsModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
@@ -742,17 +745,14 @@
     var form = document.getElementById('payloadForm');
     if (!form) return;
 
-    // Reset text/url/password inputs
     form.querySelectorAll('input[type="text"], input[type="url"], input[type="password"]').forEach(function(inp) {
-      if (inp.name === 'payload_name') { inp.value = 'my_job'; }
-      else { inp.value = ''; }
+      if (inp.name === 'payload_name') inp.value = 'my_job';
+      else inp.value = '';
     });
 
-    // Reset script selection
-    var scriptSel = document.getElementById('scriptSelect');
-    if (scriptSel) scriptSel.value = '';
+    var sel = document.getElementById('scriptSelect');
+    if (sel) sel.value = '';
 
-    // Reset script mode cards
     currentMode = '';
     document.getElementById('scriptModeInput').value = '';
     document.getElementById('cardPagecast').classList.remove('active');
@@ -760,23 +760,17 @@
     document.getElementById('panelPagecast').style.display = 'none';
     document.getElementById('panelExisting').style.display = 'none';
 
-    // Reset developer checkbox
-    var dc = document.getElementById('devCheck');
-    dc.checked = false;
+    document.getElementById('devCheck').checked = false;
     document.getElementById('devMsg').style.display = 'none';
 
-    // Reset tokens to one empty row
     var tbody = document.querySelector('#tokenTable tbody');
-    tbody.innerHTML = '<tr>'
-      + '<td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
-      + '<td><input class="field-input" name="token_values[]" placeholder="value"></td>'
-      + '</tr>';
+    tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
+      + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
     refreshTokenBorders();
 
-    // Hide token hint
     document.getElementById('tokenHint').style.display = 'none';
-    document.getElementById('tokenSubtitle').textContent = 'Key-value pairs for the navigation script';
-
+    document.getElementById('tokenSubtitle').textContent = 'Values your script needs to run';
+    showEmptyPreview();
     checkRunReady();
   }
 
@@ -786,8 +780,9 @@
     var row = document.createElement('tr');
     var kn = keyName || '';
     var vp = valuePlaceholder || 'value';
-    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + (kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '') + '></td>'
-                  + '<td><input class="field-input" name="token_values[]" placeholder="' + vp + '"></td>';
+    var readonlyAttr = kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '';
+    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + readonlyAttr + '></td>'
+      + '<td><input class="field-input" name="token_values[]" placeholder="' + vp + '"></td>';
     tbody.appendChild(row);
     refreshTokenBorders();
     if (!kn) row.querySelector('input').focus();
@@ -797,24 +792,43 @@
     var tbody = document.querySelector('#tokenTable tbody');
     var hint  = document.getElementById('tokenHint');
     var sub   = document.getElementById('tokenSubtitle');
+    var badge = document.getElementById('scriptPreviewBadge');
 
     if (!tokenNames || tokenNames.length === 0) {
       hint.style.display = 'none';
-      sub.textContent = 'Key-value pairs for the navigation script';
+      sub.textContent = 'Values your script needs to run';
+      if (badge) badge.style.display = 'none';
+      tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
+        + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
+      refreshTokenBorders();
       return;
     }
 
-    // Clear existing rows and rebuild with detected keys
+    // Filter out target_url — it has its own dedicated field
+    var filtered = tokenNames.filter(function(n) { return n !== 'target_url'; });
+    var totalDetected = tokenNames.length;
+
     tbody.innerHTML = '';
-    tokenNames.forEach(function(name) {
-      var row = document.createElement('tr');
-      row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
-                    + '<td><input class="field-input" name="token_values[]" placeholder="Enter value for ' + name + '"></td>';
-      tbody.appendChild(row);
-    });
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
+        + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
+    } else {
+      filtered.forEach(function(name) {
+        var row = document.createElement('tr');
+        row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
+          + '<td><input class="field-input" name="token_values[]" placeholder="Enter value for ' + name + '"></td>';
+        tbody.appendChild(row);
+      });
+    }
     refreshTokenBorders();
+
     hint.style.display = 'block';
-    sub.textContent = tokenNames.length + ' token' + (tokenNames.length > 1 ? 's' : '') + ' detected from script';
+    sub.textContent = totalDetected + ' token' + (totalDetected > 1 ? 's' : '') + ' detected from script';
+
+    if (badge) {
+      badge.textContent = totalDetected + ' token' + (totalDetected > 1 ? 's' : '');
+      badge.style.display = 'inline-block';
+    }
   }
 
   function refreshTokenBorders() {
@@ -827,8 +841,7 @@
       });
     });
     if (rows.length > 0) {
-      var first = rows[0];
-      var last = rows[rows.length - 1];
+      var first = rows[0], last = rows[rows.length - 1];
       first.querySelector('td:first-child .field-input').style.borderTopLeftRadius = 'var(--radius)';
       first.querySelector('td:last-child .field-input').style.borderTopRightRadius = 'var(--radius)';
       first.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
@@ -837,9 +850,8 @@
       last.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
       last.querySelectorAll('.field-input').forEach(function(inp) { inp.style.borderBottom = '1px solid var(--border)'; });
       rows.forEach(function(r, i) {
-        if (i > 0 && i < rows.length - 1) {
+        if (i > 0 && i < rows.length - 1)
           r.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
-        }
       });
     }
   }
@@ -850,81 +862,131 @@
   function selectScriptPath(mode) {
     currentMode = mode;
     document.getElementById('scriptModeInput').value = mode;
-
-    var cardPC  = document.getElementById('cardPagecast');
-    var cardEx  = document.getElementById('cardExisting');
-    var panelPC = document.getElementById('panelPagecast');
-    var panelEx = document.getElementById('panelExisting');
-
-    cardPC.classList.toggle('active', mode === 'pagecast');
-    cardEx.classList.toggle('active', mode === 'existing');
-    panelPC.style.display = mode === 'pagecast' ? 'block' : 'none';
-    panelEx.style.display = mode === 'existing' ? 'block' : 'none';
-
+    document.getElementById('cardPagecast').classList.toggle('active', mode === 'pagecast');
+    document.getElementById('cardExisting').classList.toggle('active', mode === 'existing');
+    document.getElementById('panelPagecast').style.display = mode === 'pagecast' ? 'block' : 'none';
+    document.getElementById('panelExisting').style.display = mode === 'existing' ? 'block' : 'none';
+    if (mode !== 'existing') showEmptyPreview();
     checkRunReady();
   }
 
-  // ── Token auto-detection on script change ───────────
+  // ── Script Preview ──────────────────────────────────
+  function showEmptyPreview() {
+    document.getElementById('scriptPreviewHeader').style.display = 'none';
+    document.getElementById('scriptPreviewBadge').style.display = 'none';
+    document.getElementById('scriptPreviewBody').innerHTML =
+      '<div class="script-preview-empty">'
+      + '<div class="script-preview-empty-icon">&#x1F4C4;</div>'
+      + 'Select a navigation script in Step 1<br>to see a preview here'
+      + '</div>';
+  }
+
+  function highlightScript(source) {
+    // Escape HTML
+    var h = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Comments first (so they aren't re-highlighted)
+    h = h.replace(/(^|\n)([ \t]*#[^\n]*)/g, '$1<span class="tok-cm">$2</span>');
+
+    // String literals (triple-quoted first, then single)
+    h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g, '<span class="tok-str">$1</span>');
+    h = h.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>');
+
+    // Token references: tokens["key"], tokens.get("key"), context["key"]
+    h = h.replace(/(tokens\s*\[\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|')\s*\])/g, '<span class="tok-ref">$1</span>');
+    h = h.replace(/(tokens\s*\.\s*get\s*\(\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|'))/g, '<span class="tok-ref">$1</span>');
+    h = h.replace(/(context\s*\[\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|')\s*\])/g, '<span class="tok-ref">$1</span>');
+
+    // Python keywords
+    var kws = ['def ','import ','from ','return ','if ','else:','elif ','for ','in ','while ',
+               'try:','except ','finally:','class ','with ','as ','pass','raise ','True','False','None'];
+    kws.forEach(function(kw) {
+      var re = new RegExp('(?<![a-zA-Z_])(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![a-zA-Z_])', 'g');
+      h = h.replace(re, '<span class="tok-kw">$1</span>');
+    });
+
+    return h;
+  }
+
+  function fetchScriptContent(scriptName) {
+    if (!scriptName) { showEmptyPreview(); return; }
+
+    fetch('/script/' + encodeURIComponent(scriptName) + '/content')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.content) {
+          document.getElementById('scriptPreviewHeader').style.display = 'flex';
+          document.getElementById('scriptPreviewName').textContent = data.name || scriptName;
+          document.getElementById('scriptPreviewBody').innerHTML =
+            '<pre class="script-preview-code">' + highlightScript(data.content) + '</pre>';
+        }
+      })
+      .catch(function() { showEmptyPreview(); });
+  }
+
   function fetchScriptTokens(scriptName) {
     if (!scriptName) return;
     fetch('/script/' + encodeURIComponent(scriptName) + '/tokens')
       .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.tokens && data.tokens.length > 0) {
-          setTokensFromScript(data.tokens);
-        }
-      })
-      .catch(function() { /* silent */ });
+      .then(function(data) { if (data.tokens) setTokensFromScript(data.tokens); })
+      .catch(function() {});
+  }
+
+  // ── Inline upload handler ───────────────────────────
+  function handleInlineUpload(input) {
+    var name = input.files[0] ? input.files[0].name : '';
+    var textEl = document.getElementById('inlineUploadText');
+    var btnEl  = document.getElementById('inlineUploadBtn');
+    if (name) {
+      textEl.innerHTML = '<strong>' + name + '</strong> selected';
+      btnEl.style.display = 'inline-block';
+    } else {
+      textEl.innerHTML = 'Or <strong>upload a .py script</strong> or <strong>.json config</strong>';
+      btnEl.style.display = 'none';
+    }
   }
 
   // ── Developer checkbox ──────────────────────────────
-  var devCheck = document.getElementById('devCheck');
-  var devMsg   = document.getElementById('devMsg');
-
-  devCheck.addEventListener('change', function() {
-    devMsg.style.display = this.checked ? 'flex' : 'none';
+  document.getElementById('devCheck').addEventListener('change', function() {
+    document.getElementById('devMsg').style.display = this.checked ? 'flex' : 'none';
     checkRunReady();
   });
 
-  // ── Run Job validation ──────────────────────────────
+  // ── Validation ──────────────────────────────────────
   function checkRunReady() {
-    var btn        = document.getElementById('runJobBtn');
-    var helper     = document.getElementById('runJobHelper');
-    var saveHelper = document.getElementById('saveHelper');
-    var form       = document.getElementById('payloadForm');
+    var btn    = document.getElementById('runJobBtn');
+    var helper = document.getElementById('runJobHelper');
+    var saveH  = document.getElementById('saveHelper');
+    var form   = document.getElementById('payloadForm');
     if (!form || !btn) return;
 
-    var nameVal  = (form.querySelector('[name="payload_name"]').value || '').trim();
-    var urlVal   = (form.querySelector('[name="target_url"]').value || '').trim();
-    var scriptSel = document.getElementById('scriptSelect');
-    var scriptVal = scriptSel ? scriptSel.value : '';
-    var devChecked = devCheck.checked;
+    var nameVal    = (form.querySelector('[name="payload_name"]').value || '').trim();
+    var urlVal     = (document.getElementById('targetUrlInput').value || '').trim();
+    var scriptSel  = document.getElementById('scriptSelect');
+    var scriptVal  = scriptSel ? scriptSel.value : '';
+    var devChecked = document.getElementById('devCheck').checked;
 
-    // Developer mode: can save but not run
     if (devChecked) {
       btn.disabled = true;
       helper.textContent = 'Save your configuration, then share it with your developer';
       helper.className = 'btn-helper warning';
-      saveHelper.textContent = 'Saves configuration for developer handoff';
-      saveHelper.className = 'btn-helper ready';
+      saveH.textContent = 'Saves configuration for developer handoff';
+      saveH.className = 'btn-helper ready';
       return;
     }
-
-    // PageCast mode: can save but not run yet
     if (currentMode === 'pagecast') {
       btn.disabled = true;
       helper.textContent = 'Record your navigation with PageCast first';
       helper.className = 'btn-helper warning';
-      saveHelper.textContent = 'Saves your job configuration to jobs/';
-      saveHelper.className = 'btn-helper';
+      saveH.textContent = 'Saves your job configuration to jobs/';
+      saveH.className = 'btn-helper';
       return;
     }
 
-    // Existing script mode: check all required fields
     var missing = [];
     if (!nameVal) missing.push('Job Name');
     if (!urlVal)  missing.push('Target URL');
-    if (currentMode !== 'existing') missing.push('Navigation Script (select a path in Step 1)');
+    if (currentMode !== 'existing') missing.push('Navigation Script');
     else if (!scriptVal) missing.push('Navigation Script');
 
     if (missing.length > 0) {
@@ -936,33 +998,29 @@
       helper.textContent = 'Saves configuration then executes the job';
       helper.className = 'btn-helper ready';
     }
-
-    saveHelper.textContent = 'Saves your job configuration to jobs/';
-    saveHelper.className = 'btn-helper';
+    saveH.textContent = 'Saves your job configuration to jobs/';
+    saveH.className = 'btn-helper';
   }
 
-  // Wire up live field watchers
+  // ── Wire up watchers ───────────────────────────────
   (function() {
     var form = document.getElementById('payloadForm');
     if (!form) return;
 
-    var fields = form.querySelectorAll('[name="payload_name"], [name="target_url"]');
-    fields.forEach(function(f) {
-      f.addEventListener('input', checkRunReady);
-    });
+    form.querySelector('[name="payload_name"]').addEventListener('input', checkRunReady);
+    document.getElementById('targetUrlInput').addEventListener('input', checkRunReady);
 
     var scriptSel = document.getElementById('scriptSelect');
     if (scriptSel) {
       scriptSel.addEventListener('change', function() {
         checkRunReady();
         fetchScriptTokens(this.value);
+        fetchScriptContent(this.value);
       });
     }
 
-    // Initial state
     checkRunReady();
   })();
 </script>
-
 </body>
 </html>
