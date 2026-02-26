@@ -1,1152 +1,821 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EmulationApp - Dashboard</title>
-<style>
-  :root {
-    --bg-primary: #0E0F1A;
-    --bg-secondary: #161828;
-    --bg-card: #1C1E32;
-    --bg-input: #232540;
-    --bg-hover: #2A2D4A;
-    --border: #2E3150;
-    --border-focus: #6C72FF;
-    --text-primary: #E8E9F0;
-    --text-secondary: #8B8FAE;
-    --text-muted: #5A5E7A;
-    --accent: #6C72FF;
-    --accent-glow: rgba(108,114,255,0.15);
-    --green: #34D399;
-    --green-bg: rgba(52,211,153,0.1);
-    --green-border: rgba(52,211,153,0.3);
-    --red: #F87171;
-    --red-bg: rgba(248,113,113,0.08);
-    --amber: #FBBF24;
-    --amber-bg: rgba(251,191,36,0.1);
-    --amber-border: rgba(251,191,36,0.3);
-    --radius: 10px;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg-primary); color:var(--text-primary); min-height:100vh; }
+<?php
 
-  .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 28px; height:56px; background:var(--bg-secondary); border-bottom:1px solid var(--border); }
-  .topbar-left { display:flex; align-items:center; gap:12px; }
-  .topbar-logo { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#A78BFA); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; }
-  .topbar-title { font-size:15px; font-weight:600; }
-  .topbar-title span { color:var(--text-muted); font-weight:400; }
-  .gear-btn {
-    width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center;
-    border-radius:8px; background:transparent; border:1px solid var(--border); color:var(--text-secondary);
-    cursor:pointer; transition:all 0.15s;
-  }
-  .gear-btn:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-muted); }
-  .gear-btn svg { width:18px; height:18px; }
+namespace App\Http\Controllers;
 
-  .layout { display:grid; grid-template-columns:1fr 400px; min-height:calc(100vh - 56px); }
-  .main-panel { padding:28px 32px; overflow-y:auto; }
-  .side-panel { background:var(--bg-secondary); border-left:1px solid var(--border); padding:24px; overflow-y:auto; }
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 
-  .section { margin-bottom:20px; }
-  .section-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-  .section-number { width:24px; height:24px; border-radius:50%; background:var(--accent-glow); border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0; }
-  .section-title { font-size:14px; font-weight:600; }
-  .section-subtitle { font-size:12px; color:var(--text-muted); margin-left:auto; }
+class EmulationController extends Controller
+{
+    private string $appRoot;
+    private string $jobsDir;
 
-  .field { margin-bottom:10px; }
-  .field-label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px; }
-  .field-input, .field-select {
-    width:100%; padding:9px 13px; font-size:14px; font-family:inherit;
-    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
-    color:var(--text-primary); outline:none; transition:border-color 0.15s;
-  }
-  .field-input:focus, .field-select:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--accent-glow); }
-  .field-input::placeholder { color:var(--text-muted); }
-  .field-select { appearance:none; cursor:pointer; }
-  .field-select option { background:var(--bg-input); color:var(--text-primary); }
-
-  .cred-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .password-wrap { position:relative; }
-  .password-wrap .field-input { padding-right:100px; }
-  .encrypt-badge {
-    position:absolute; right:10px; top:50%; transform:translateY(-50%);
-    background:var(--green-bg); border:1px solid var(--green-border); color:var(--green);
-    font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px;
-  }
-
-  .divider { height:1px; background:var(--border); margin:4px 0 16px; }
-
-  .btn-row-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; }
-  .clear-btn {
-    padding:13px 18px; font-size:14px; font-weight:600; font-family:inherit;
-    background:transparent; border:1px solid var(--border); border-radius:var(--radius);
-    color:var(--text-muted); cursor:pointer; transition:all 0.2s;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-  }
-  .clear-btn:hover { border-color:var(--red); color:var(--red); background:rgba(248,113,113,0.08); }
-  .save-btn {
-    padding:13px; font-size:14px; font-weight:600; font-family:inherit;
-    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
-    color:var(--text-primary); cursor:pointer; transition:all 0.2s;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-  }
-  .save-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-  .run-btn {
-    padding:13px; font-size:14px; font-weight:600; font-family:inherit;
-    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
-    color:#fff; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 20px rgba(108,114,255,0.3);
-    display:flex; align-items:center; justify-content:center; gap:8px;
-  }
-  .run-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 28px rgba(108,114,255,0.45); }
-  .run-btn:disabled { background:var(--bg-hover); color:var(--text-muted); cursor:not-allowed; box-shadow:none; opacity:0.6; }
-  .btn-helpers-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; margin-top:6px; }
-  .btn-helper { font-size:11px; color:var(--text-muted); text-align:center; }
-  .btn-helper.ready { color:var(--green); }
-  .btn-helper.warning { color:var(--amber); }
-
-  .script-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .script-card {
-    background:var(--bg-input); border:1px solid var(--border); border-radius:12px;
-    padding:18px; cursor:pointer; transition:all 0.15s; text-align:center;
-  }
-  .script-card:hover { border-color:var(--accent); background:var(--bg-hover); }
-  .script-card.active { border-color:var(--accent); background:var(--accent-glow); }
-  .script-card-icon { font-size:28px; margin-bottom:8px; }
-  .script-card-title { font-size:14px; font-weight:600; margin-bottom:4px; }
-  .script-card-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
-  .script-panel { margin-top:12px; }
-
-  .pagecast-cta {
-    display:flex; align-items:center; gap:14px; padding:16px;
-    background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
-  }
-  .pagecast-cta-icon { font-size:24px; flex-shrink:0; }
-  .pagecast-cta-body { flex:1; }
-  .pagecast-cta-title { font-size:14px; font-weight:600; margin-bottom:4px; }
-  .pagecast-cta-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
-  .pagecast-launch-btn {
-    flex-shrink:0; padding:10px 18px; font-size:13px; font-weight:600; font-family:inherit;
-    background:linear-gradient(135deg,var(--accent),#8B5CF6); border:none; border-radius:var(--radius);
-    color:#fff; cursor:pointer; display:flex; align-items:center; gap:6px;
-    transition:all 0.2s; box-shadow:0 2px 12px rgba(108,114,255,0.3); white-space:nowrap;
-  }
-  .pagecast-launch-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(108,114,255,0.45); }
-
-  .developer-check {
-    display:flex; align-items:center; gap:10px; margin-top:14px;
-    cursor:pointer; font-size:13px; color:var(--text-secondary); user-select:none;
-  }
-  .developer-check input[type="checkbox"] { display:none; }
-  .developer-check-box {
-    width:18px; height:18px; border:1.5px solid var(--border); border-radius:4px;
-    background:var(--bg-input); flex-shrink:0; position:relative; transition:all 0.15s;
-  }
-  .developer-check input:checked ~ .developer-check-box { background:var(--accent); border-color:var(--accent); }
-  .developer-check input:checked ~ .developer-check-box::after {
-    content:''; position:absolute; top:2px; left:5px; width:5px; height:9px;
-    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
-  }
-  .developer-check:hover .developer-check-box { border-color:var(--accent); }
-  .developer-msg {
-    display:flex; align-items:flex-start; gap:12px; margin-top:12px;
-    padding:14px; background:var(--amber-bg); border:1px solid var(--amber-border);
-    border-radius:var(--radius); font-size:13px; color:var(--text-secondary); line-height:1.5;
-  }
-  .developer-msg-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
-  .developer-msg-body strong { color:var(--text-primary); }
-
-  /* Upload area — not a form, handled by JS */
-  .upload-inline {
-    margin-top:12px; display:flex; align-items:center; gap:12px;
-    padding:12px 16px; background:var(--bg-input); border:1px dashed var(--border);
-    border-radius:var(--radius); transition:all 0.15s; position:relative; cursor:pointer;
-  }
-  .upload-inline:hover { border-color:var(--accent); background:var(--bg-hover); }
-  .upload-inline-icon { font-size:18px; flex-shrink:0; }
-  .upload-inline-text { font-size:13px; color:var(--text-muted); flex:1; }
-  .upload-inline-text strong { color:var(--text-secondary); }
-  .upload-inline-btn {
-    flex-shrink:0; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit;
-    background:var(--bg-card); border:1px solid var(--border); border-radius:8px;
-    color:var(--text-primary); cursor:pointer; transition:all 0.15s; z-index:2;
-  }
-  .upload-inline-btn:hover { border-color:var(--accent); color:var(--accent); }
-
-  /* "Referenced in script" badge */
-  .script-ref-badge {
-    display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px;
-    font-size:10px; font-weight:600; background:var(--green-bg); border:1px solid var(--green-border);
-    color:var(--green); margin-left:8px; vertical-align:middle; transition:opacity 0.2s;
-  }
-  .script-ref-badge svg { width:12px; height:12px; }
-
-  .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
-  .alert-success { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
-  .alert-error { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
-
-  .side-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-  .side-divider { height:1px; background:var(--border); margin:16px 0; }
-
-  /* Script Preview */
-  .script-preview {
-    background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius);
-    margin-bottom:4px; overflow:hidden;
-  }
-  .script-preview-header {
-    display:flex; align-items:center; gap:6px; padding:10px 14px;
-    border-bottom:1px solid var(--border); background:var(--bg-card);
-  }
-  .script-preview-dot { width:8px; height:8px; border-radius:50%; }
-  .script-preview-dot.r { background:#FF5F56; }
-  .script-preview-dot.y { background:#FFBD2E; }
-  .script-preview-dot.g { background:#27C93F; }
-  .script-preview-name {
-    font-family:'Consolas','Courier New',monospace; font-size:12px;
-    color:var(--text-secondary); margin-left:6px; flex:1;
-  }
-  .script-preview-badge {
-    font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px;
-    background:var(--green-bg); border:1px solid var(--green-border); color:var(--green);
-  }
-  .script-preview-code {
-    padding:14px 16px; margin:0;
-    font-family:'Consolas','Courier New',monospace; font-size:11.5px;
-    color:var(--text-muted); max-height:320px; overflow-y:auto; white-space:pre;
-    line-height:1.7; tab-size:4; background:transparent; border:none;
-  }
-  .script-preview-code .tok-ref { color:var(--green); font-weight:600; }
-  .script-preview-code .tok-str { color:#C792EA; }
-  .script-preview-code .tok-kw { color:#82AAFF; }
-  .script-preview-code .tok-cm { color:#546E7A; font-style:italic; }
-  .script-preview-empty {
-    padding:32px 16px; text-align:center; color:var(--text-muted); font-size:13px; line-height:1.6;
-  }
-  .script-preview-empty-icon { font-size:28px; margin-bottom:8px; opacity:0.5; }
-
-  .payload-item {
-    display:flex; align-items:center; gap:8px; padding:10px 12px;
-    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
-    margin-bottom:6px; font-size:13px; transition:border-color 0.15s;
-  }
-  .payload-item:hover { border-color:var(--text-muted); }
-  .payload-icon { font-size:14px; }
-  .payload-name { font-family:'Consolas','Courier New',monospace; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .payload-actions { display:flex; gap:4px; flex-shrink:0; }
-  .payload-actions a, .payload-actions button {
-    font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid var(--border);
-    background:transparent; color:var(--text-secondary); cursor:pointer; text-decoration:none;
-    font-family:inherit; transition:all 0.15s;
-  }
-  .payload-actions a:hover, .payload-actions button:hover { border-color:var(--accent); color:var(--accent); }
-  .payload-actions button.delete-btn:hover { border-color:var(--red); color:var(--red); }
-  .payload-actions button.run-btn-sm:hover { border-color:var(--green); color:var(--green); }
-  .empty-state { color:var(--text-muted); font-size:13px; padding:20px 0; text-align:center; }
-
-  .token-table { width:100%; border-collapse:separate; border-spacing:0; }
-  .token-table th {
-    text-align:left; font-size:11px; font-weight:600; color:var(--text-muted);
-    text-transform:uppercase; letter-spacing:0.5px; padding:0 12px 8px;
-  }
-  .token-table td { padding:0; }
-  .token-table td .field-input {
-    border-radius:0; border-right:none; margin:0;
-    font-family:'Consolas','Courier New',monospace; font-size:13px;
-  }
-  .token-table tr:first-child td:first-child .field-input { border-top-left-radius:var(--radius); }
-  .token-table tr:first-child td:last-child .field-input { border-top-right-radius:var(--radius); border-right:1px solid var(--border); }
-  .token-table tr:last-child td:first-child .field-input { border-bottom-left-radius:var(--radius); }
-  .token-table tr:last-child td:last-child .field-input { border-bottom-right-radius:var(--radius); border-right:1px solid var(--border); }
-  .token-table tr:not(:last-child) td .field-input { border-bottom:none; }
-  .token-table td:last-child .field-input { border-right:1px solid var(--border); }
-  .add-token-btn {
-    display:flex; align-items:center; gap:6px; margin-top:10px;
-    background:transparent; border:1px dashed var(--border); border-radius:var(--radius);
-    color:var(--text-muted); font-size:13px; font-family:inherit;
-    padding:8px 14px; cursor:pointer; transition:all 0.15s; width:100%; justify-content:center;
-  }
-  .add-token-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
-  .token-hint {
-    padding:10px 14px; margin-bottom:10px;
-    background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius);
-    font-size:12px; color:var(--green); line-height:1.5;
-  }
-  .token-url-label {
-    font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase;
-    letter-spacing:0.5px; display:flex; align-items:center; gap:6px; margin-bottom:6px;
-  }
-  .token-url-label .req { color:var(--red); font-weight:700; }
-
-  .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-  .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
-  .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
-  .dot-idle { background:var(--text-muted); }
-  .log-entries { display:flex; flex-direction:column; gap:0; }
-  .log-entry {
-    display:grid; grid-template-columns:64px 24px 1fr; gap:8px; align-items:start;
-    padding:10px 0; border-top:1px solid var(--border);
-  }
-  .log-entry:last-child { border-bottom:1px solid var(--border); }
-  .log-time { font-family:'Consolas','Courier New',monospace; font-size:12px; color:var(--text-muted); padding-top:1px; }
-  .log-icon { font-size:14px; text-align:center; padding-top:1px; }
-  .log-text { font-size:13px; color:var(--green); line-height:1.5; }
-  .log-text strong { color:#6EE7B7; font-weight:600; }
-  .log-status {
-    display:flex; align-items:center; gap:8px; margin-top:12px;
-    padding:10px 14px; border-radius:var(--radius); font-size:13px; font-weight:500;
-  }
-  .log-status-ok { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
-  .log-status-fail { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
-
-  .modal-overlay {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
-    z-index:100; align-items:center; justify-content:center;
-  }
-  .modal-overlay.active { display:flex; }
-  .modal {
-    background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
-    padding:28px; width:420px; max-width:90vw; box-shadow:0 8px 40px rgba(0,0,0,0.5);
-  }
-  .modal-title { font-size:16px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
-  .modal-title svg { width:20px; height:20px; color:var(--text-muted); }
-  .modal-close {
-    margin-left:auto; background:transparent; border:none; color:var(--text-muted);
-    font-size:18px; cursor:pointer; padding:4px 8px; border-radius:6px; transition:all 0.15s;
-  }
-  .modal-close:hover { color:var(--text-primary); background:var(--bg-hover); }
-  .modal-btn {
-    width:100%; padding:11px; font-size:14px; font-weight:600; font-family:inherit;
-    background:var(--accent); border:none; border-radius:var(--radius);
-    color:#fff; cursor:pointer; transition:all 0.15s; margin-top:16px;
-  }
-  .modal-btn:hover { background:#8186FF; }
-  .uv-install-help { margin-top:8px; }
-  .install-steps {
-    margin-top:8px; padding:12px; background:var(--bg-primary);
-    border:1px solid var(--border); border-radius:var(--radius);
-  }
-  .install-step-label { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
-  .install-cmd {
-    display:block; padding:8px 10px; background:var(--bg-input); border:1px solid var(--border);
-    border-radius:6px; font-family:'Consolas','Courier New',monospace; font-size:12px;
-    color:var(--green); word-break:break-all; user-select:all; cursor:text;
-  }
-
-  @media (max-width:900px) {
-    .layout { grid-template-columns:1fr; }
-    .side-panel { border-left:none; border-top:1px solid var(--border); }
-    .cred-row { grid-template-columns:1fr; }
-  }
-</style>
-</head>
-<body>
-
-<div class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-logo">E</div>
-    <div class="topbar-title">EmulationApp <span>/ Dashboard</span></div>
-  </div>
-  <div class="topbar-right">
-    <button class="gear-btn" title="Settings" onclick="document.getElementById('settingsModal').classList.add('active')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-  </div>
-</div>
-
-<div class="layout">
-  <div class="main-panel">
-
-    @if(session('success'))
-      <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if($errors->any())
-      <div class="alert alert-error">
-        @foreach($errors->all() as $error) {{ $error }}<br> @endforeach
-      </div>
-    @endif
-
-    <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
-      @csrf
-
-      {{-- ── Step 1: Navigation Script ── --}}
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">1</div>
-          <div class="section-title">Navigation Script</div>
-          <div class="section-subtitle">What should the browser do?</div>
-        </div>
-
-        <div class="script-options">
-          <div class="script-card" id="cardPagecast" onclick="selectScriptPath('pagecast')">
-            <div class="script-card-icon">&#x23FA;</div>
-            <div class="script-card-title">Record with PageCast</div>
-            <div class="script-card-desc">Open a browser and record your actions. No coding required.</div>
-          </div>
-          <div class="script-card" id="cardExisting" onclick="selectScriptPath('existing')">
-            <div class="script-card-icon">&#x1F4C4;</div>
-            <div class="script-card-title">Use Existing Script</div>
-            <div class="script-card-desc">Select a script written by a developer or from a previous job.</div>
-          </div>
-        </div>
-
-        <div class="script-panel" id="panelPagecast" style="display:none">
-          <div class="pagecast-cta">
-            <div class="pagecast-cta-icon">&#x23FA;</div>
-            <div class="pagecast-cta-body">
-              <div class="pagecast-cta-title">Create your navigation script with PageCast</div>
-              <div class="pagecast-cta-desc">PageCast will open a browser. Perform the steps you want to record, then click Stop.</div>
-            </div>
-            <button type="button" class="pagecast-launch-btn" onclick="alert('PageCast recording will launch here.')">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Launch
-            </button>
-          </div>
-        </div>
-
-        <div class="script-panel" id="panelExisting" style="display:none">
-          <div class="field" style="margin-top:0">
-            <select class="field-select" name="script_path" id="scriptSelect">
-              <option value="">-- Select a script --</option>
-              @foreach($scripts as $script)
-                <option value="{{ $script }}" {{ old('script_path') === $script ? 'selected' : '' }}>{{ $script }}</option>
-              @endforeach
-            </select>
-          </div>
-          @if(count($scripts) === 0)
-            <div class="btn-helper warning" style="text-align:left;margin-top:6px">No scripts found. Upload a .py file below.</div>
-          @endif
-        </div>
-
-        {{-- Upload via JS (NOT a nested form) --}}
-        <div class="upload-inline" id="uploadInlineArea" onclick="document.getElementById('hiddenFileInput').click()">
-          <div class="upload-inline-icon">&#x2B06;&#xFE0F;</div>
-          <div class="upload-inline-text" id="inlineUploadText">
-            Or <strong>upload a .py script</strong> or <strong>.json config</strong>
-          </div>
-          <button type="button" class="upload-inline-btn" id="inlineUploadBtn" style="display:none"
-                  onclick="event.stopPropagation(); doInlineUpload();">Upload</button>
-        </div>
-        <input type="file" id="hiddenFileInput" accept=".py,.json" style="display:none"
-               onchange="handleInlineFileSelect(this)">
-
-        <label class="developer-check">
-          <input type="checkbox" name="needs_developer" id="devCheck" value="1" {{ old('needs_developer') ? 'checked' : '' }}>
-          <span class="developer-check-box"></span>
-          <span>I need a developer to write the navigation script for me</span>
-        </label>
-        <div class="developer-msg" id="devMsg" style="display:none">
-          <div class="developer-msg-icon">&#x1F6E0;&#xFE0F;</div>
-          <div class="developer-msg-body">
-            <strong>Developer assistance requested</strong><br>
-            Save your configuration, then share the generated JSON file with your developer.
-          </div>
-        </div>
-
-        <input type="hidden" name="script_mode" id="scriptModeInput" value="">
-      </div>
-
-      <div class="divider"></div>
-
-      {{-- ── Step 2: Job Name ── --}}
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">2</div>
-          <div class="section-title">Job Name</div>
-          <div class="section-subtitle">A name for this job configuration</div>
-        </div>
-        <div class="field">
-          <input class="field-input" type="text" name="payload_name"
-                 value="{{ old('payload_name', 'my_job') }}"
-                 placeholder="my_job" required pattern="[a-zA-Z0-9_\-]+">
-        </div>
-      </div>
-
-      {{-- ── Step 3: Credentials ── --}}
-      <div class="section" id="credentialsSection">
-        <div class="section-header">
-          <div class="section-number">3</div>
-          <div class="section-title">Credentials</div>
-          <div class="section-subtitle">
-            Auto-encrypted on save
-            <span class="script-ref-badge" id="credsBadge" style="display:none">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Used by script
-            </span>
-          </div>
-        </div>
-        <div class="cred-row">
-          <div class="field">
-            <label class="field-label" id="userLabel">Username</label>
-            <input class="field-input" type="text" name="username" id="usernameInput"
-                   value="{{ old('username') }}" placeholder="user@company.com">
-          </div>
-          <div class="field">
-            <label class="field-label" id="passLabel">Password</label>
-            <div class="password-wrap">
-              <input class="field-input" type="password" name="password" id="passwordInput"
-                     placeholder="Enter password">
-              <div class="encrypt-badge">ENCRYPTED</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      {{-- ── Step 4: Script Configuration ── --}}
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">4</div>
-          <div class="section-title">Script Configuration</div>
-          <div class="section-subtitle" id="tokenSubtitle">Values your script needs to run</div>
-        </div>
-
-        <div class="token-hint" id="tokenHint" style="display:none">
-          &#x2728; <span id="tokenHintText">Token names were auto-detected from the selected script. Fill in the values below.</span>
-        </div>
-
-        {{-- Target URL --}}
-        <div class="token-url-label">
-          &#x1F310; Target URL <span class="req">*</span>
-          <span class="script-ref-badge" id="urlBadge" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Used by script
-          </span>
-        </div>
-        <div class="field" style="margin-bottom:16px">
-          <input class="field-input" type="url" name="target_url" id="targetUrlInput"
-                 value="{{ old('target_url') }}"
-                 placeholder="https://portal.example.com/login">
-        </div>
-
-        {{-- Additional tokens --}}
-        <table class="token-table" id="tokenTable">
-          <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>
-              <td><input class="field-input" name="token_values[]" placeholder="value"></td>
-            </tr>
-          </tbody>
-        </table>
-        <button type="button" class="add-token-btn" onclick="addTokenRow()">+ Add Token</button>
-      </div>
-
-      <div class="divider"></div>
-
-      {{-- ── Step 5: S3 Output ── --}}
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">5</div>
-          <div class="section-title">S3 Output</div>
-          <div class="section-subtitle">Optional</div>
-        </div>
-        <div class="cred-row">
-          <div class="field">
-            <label class="field-label">Bucket</label>
-            <input class="field-input" type="text" name="s3_output_bucket"
-                   value="{{ old('s3_output_bucket') }}" placeholder="my-emulation-bucket">
-          </div>
-          <div class="field">
-            <label class="field-label">Prefix</label>
-            <input class="field-input" type="text" name="s3_output_prefix"
-                   value="{{ old('s3_output_prefix') }}" placeholder="results/acme/2026-01/">
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      {{-- ── Actions ── --}}
-      <div class="section">
-        <div class="btn-row-3">
-          <button type="button" class="clear-btn" onclick="clearForm()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            Clear All
-          </button>
-          <button type="submit" name="action" value="save" class="save-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save Configuration
-          </button>
-          <button type="submit" name="action" value="save_and_run" class="run-btn" id="runJobBtn" disabled>
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Run Job
-          </button>
-        </div>
-        <div class="btn-helpers-3">
-          <span class="btn-helper">&nbsp;</span>
-          <span class="btn-helper" id="saveHelper">Saves your job configuration to jobs/</span>
-          <span class="btn-helper" id="runJobHelper">Select a navigation script to enable</span>
-        </div>
-      </div>
-
-    </form>
-  </div>
-
-  {{-- ═══ SIDE PANEL ═══ --}}
-  <div class="side-panel">
-
-    <div class="side-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12l-2 2 2 2"/><path d="M14 12l2 2-2 2"/></svg>
-      Script Preview
-    </div>
-
-    <div class="script-preview" id="scriptPreview">
-      <div class="script-preview-header" id="scriptPreviewHeader" style="display:none">
-        <span class="script-preview-dot r"></span>
-        <span class="script-preview-dot y"></span>
-        <span class="script-preview-dot g"></span>
-        <span class="script-preview-name" id="scriptPreviewName"></span>
-        <span class="script-preview-badge" id="scriptPreviewBadge" style="display:none"></span>
-      </div>
-      <div id="scriptPreviewBody">
-        <div class="script-preview-empty">
-          <div class="script-preview-empty-icon">&#x1F4C4;</div>
-          Select a navigation script in Step 1<br>to see a preview here
-        </div>
-      </div>
-    </div>
-
-    <div class="side-divider"></div>
-
-    <div class="side-title">Saved Jobs</div>
-    @forelse($payloads as $payload)
-      <div class="payload-item">
-        <span class="payload-icon">&#x1F4C4;</span>
-        <span class="payload-name">{{ $payload }}.json</span>
-        <div class="payload-actions">
-          <a href="{{ route('payload.show', $payload) }}" target="_blank">View</a>
-          <form method="POST" action="{{ route('payload.run', $payload) }}" style="display:inline"
-                onsubmit="return confirm('Run {{ $payload }}.json now?')">
-            @csrf
-            <button type="submit" class="run-btn-sm">&#9654;</button>
-          </form>
-          <form method="POST" action="{{ route('payload.destroy', $payload) }}" style="display:inline"
-                onsubmit="return confirm('Delete {{ $payload }}.json?')">
-            @csrf @method('DELETE')
-            <button type="submit" class="delete-btn">&#x2715;</button>
-          </form>
-        </div>
-      </div>
-    @empty
-      <div class="empty-state">No jobs yet. Create one using the form or upload a file.</div>
-    @endforelse
-
-    <div class="side-divider"></div>
-
-    <div class="side-title">
-      @if(session('job_log'))
-        <span class="log-dot {{ session('job_success') ? 'dot-green' : 'dot-red' }}"></span>
-      @else
-        <span class="log-dot dot-idle"></span>
-      @endif
-      Job Log
-    </div>
-    @if(session('job_log'))
-      <div class="log-entries">
-        @foreach(session('job_log') as $entry)
-          <div class="log-entry">
-            <span class="log-time">{{ $entry['time'] }}</span>
-            <span class="log-icon">{!! $entry['icon'] !!}</span>
-            <span class="log-text">{!! $entry['html'] !!}</span>
-          </div>
-        @endforeach
-      </div>
-      <div class="log-status {{ session('job_success') ? 'log-status-ok' : 'log-status-fail' }}">
-        <span>{{ session('job_success') ? '&#x2705;' : '&#x274C;' }}</span>
-        <span>{{ session('job_status_text', 'Job finished') }}</span>
-      </div>
-    @else
-      <div class="empty-state">Run a job to see the log here.</div>
-    @endif
-  </div>
-</div>
-
-{{-- ═══ SETTINGS MODAL ═══ --}}
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <div class="modal-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-      Settings
-      <button class="modal-close" onclick="document.getElementById('settingsModal').classList.remove('active')">&times;</button>
-    </div>
-    <form method="POST" action="{{ route('settings.save') }}">
-      @csrf
-      <div class="field">
-        <label class="field-label">Path to uv</label>
-        <input class="field-input" type="text" name="uv_path"
-               value="{{ $settings['uv_path'] ?? '' }}" placeholder="Not detected"
-               style="font-family:'Consolas','Courier New',monospace;font-size:13px;">
-        @if(!empty($settings['uv_path']) && file_exists($settings['uv_path']))
-          <div class="btn-helper ready" style="margin-top:4px;text-align:left">&#x2705; Detected at {{ $settings['uv_path'] }}</div>
-        @elseif(!empty($settings['uv_path']))
-          <div class="btn-helper warning" style="margin-top:4px;text-align:left">&#x26A0;&#xFE0F; File not found at this path.</div>
-        @else
-          <div class="uv-install-help">
-            <div class="btn-helper warning" style="text-align:left">&#x26A0;&#xFE0F; uv not found. Install it, then refresh.</div>
-            <div class="install-steps">
-              <div class="install-step-label">Open PowerShell and run:</div>
-              <code class="install-cmd">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code>
-            </div>
-          </div>
-        @endif
-      </div>
-      <div class="field" style="margin-top:12px">
-        <label class="field-label">Browser Driver</label>
-        <select class="field-select" name="driver">
-          <option value="selenium" {{ ($settings['driver'] ?? 'selenium') === 'selenium' ? 'selected' : '' }}>Selenium (Chrome)</option>
-          <option value="playwright" {{ ($settings['driver'] ?? '') === 'playwright' ? 'selected' : '' }}>Playwright (Chromium)</option>
-        </select>
-      </div>
-      <div class="field" style="margin-top:12px">
-        <label class="field-label">Default S3 Output Bucket</label>
-        <input class="field-input" type="text" name="s3_output_bucket"
-               value="{{ $settings['s3_output_bucket'] ?? '' }}" placeholder="my-emulation-bucket">
-      </div>
-      <div class="field" style="margin-top:12px">
-        <label class="field-label">Default S3 Output Prefix</label>
-        <input class="field-input" type="text" name="s3_output_prefix"
-               value="{{ $settings['s3_output_prefix'] ?? '' }}" placeholder="results/">
-      </div>
-      <button type="submit" class="modal-btn">Save Settings</button>
-    </form>
-  </div>
-</div>
-
-<script>
-  document.getElementById('settingsModal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('active');
-  });
-
-  // ── Random 5-char ID ───────────────────────────────
-  function generateId() {
-    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    var id = '';
-    for (var i = 0; i < 5; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
-    return id;
-  }
-
-  // Set initial job name with random suffix on page load
-  (function() {
-    var nameInput = document.querySelector('[name="payload_name"]');
-    if (nameInput && (nameInput.value === 'my_job' || nameInput.value === '')) {
-      nameInput.value = 'my_job_' + generateId();
-    }
-  })();
-
-  // ── Clear form ─────────────────────────────────────
-  function clearForm() {
-    if (!confirm('Clear all fields?')) return;
-    var form = document.getElementById('payloadForm');
-    if (!form) return;
-    form.querySelectorAll('input[type="text"], input[type="url"], input[type="password"]').forEach(function(inp) {
-      if (inp.name === 'payload_name') inp.value = 'my_job_' + generateId();
-      else inp.value = '';
-    });
-    var sel = document.getElementById('scriptSelect');
-    if (sel) sel.value = '';
-    currentMode = '';
-    document.getElementById('scriptModeInput').value = '';
-    document.getElementById('cardPagecast').classList.remove('active');
-    document.getElementById('cardExisting').classList.remove('active');
-    document.getElementById('panelPagecast').style.display = 'none';
-    document.getElementById('panelExisting').style.display = 'none';
-    document.getElementById('devCheck').checked = false;
-    document.getElementById('devMsg').style.display = 'none';
-    resetTokenTable();
-    hideScriptCues();
-    showEmptyPreview();
-    checkRunReady();
-  }
-
-  function resetTokenTable() {
-    var tbody = document.querySelector('#tokenTable tbody');
-    tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
-      + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
-    refreshTokenBorders();
-    document.getElementById('tokenHint').style.display = 'none';
-    document.getElementById('tokenSubtitle').textContent = 'Values your script needs to run';
-  }
-
-  function hideScriptCues() {
-    document.getElementById('urlBadge').style.display = 'none';
-    document.getElementById('credsBadge').style.display = 'none';
-    var urlInput = document.getElementById('targetUrlInput');
-    urlInput.style.borderColor = '';
-    urlInput.style.background = '';
-
-    // Reset credential field styling
-    var userIn = document.getElementById('usernameInput');
-    var passIn = document.getElementById('passwordInput');
-    userIn.style.borderColor = '';
-    userIn.style.background = '';
-    userIn.placeholder = 'user@company.com';
-    passIn.style.borderColor = '';
-    passIn.style.background = '';
-    passIn.placeholder = 'Enter password';
-    document.getElementById('userLabel').textContent = 'Username';
-    document.getElementById('passLabel').textContent = 'Password';
-  }
-
-  // ── Token table ─────────────────────────────────────
-  function addTokenRow(keyName, valuePlaceholder) {
-    var tbody = document.querySelector('#tokenTable tbody');
-    var row = document.createElement('tr');
-    var kn = keyName || '';
-    var vp = valuePlaceholder || 'value';
-    var ro = kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '';
-    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + ro + '></td>'
-      + '<td><input class="field-input" name="token_values[]" placeholder="' + vp + '"></td>';
-    tbody.appendChild(row);
-    refreshTokenBorders();
-    if (!kn) row.querySelector('input').focus();
-  }
-
-  function setTokensFromScript(tokenObjs, usesUrl, usesCreds, suggestedUrl, hasSavedCreds) {
-    var tbody = document.querySelector('#tokenTable tbody');
-    var hint  = document.getElementById('tokenHint');
-    var hintT = document.getElementById('tokenHintText');
-    var sub   = document.getElementById('tokenSubtitle');
-    var badge = document.getElementById('scriptPreviewBadge');
-    var urlBadge  = document.getElementById('urlBadge');
-    var credBadge = document.getElementById('credsBadge');
-    var urlInput  = document.getElementById('targetUrlInput');
-    var userIn = document.getElementById('usernameInput');
-    var passIn = document.getElementById('passwordInput');
-
-    // -- URL: auto-fill from script + badge --
-    if (usesUrl) {
-      urlBadge.style.display = 'inline-flex';
-      urlInput.style.borderColor = 'var(--green)';
-      urlInput.style.background = 'var(--green-bg)';
-      if (suggestedUrl && !urlInput.value) {
-        urlInput.value = suggestedUrl;
-      }
-    } else {
-      urlBadge.style.display = 'none';
-      urlInput.style.borderColor = '';
-      urlInput.style.background = '';
+    public function __construct()
+    {
+        $this->appRoot = config('emulation.app_root') ?? base_path('../');
+        $this->jobsDir = config('emulation.jobs_dir') ?? base_path('../jobs');
     }
 
-    // -- Credentials: highlight + show saved state --
-    credBadge.style.display = usesCreds ? 'inline-flex' : 'none';
-    if (usesCreds) {
-      userIn.style.borderColor = 'var(--green)';
-      userIn.style.background = 'var(--green-bg)';
-      passIn.style.borderColor = 'var(--green)';
-      passIn.style.background = 'var(--green-bg)';
-      if (hasSavedCreds) {
-        userIn.placeholder = 'Saved (leave blank to keep)';
-        passIn.placeholder = 'Saved (leave blank to keep)';
-        document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; saved</span>';
-        document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; saved</span>';
-      } else {
-        userIn.placeholder = 'Required by script';
-        passIn.placeholder = 'Required by script';
-        document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--amber);font-size:10px;font-weight:600">&#x26A0; needed</span>';
-        document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--amber);font-size:10px;font-weight:600">&#x26A0; needed</span>';
-      }
-    } else {
-      userIn.style.borderColor = '';
-      userIn.style.background = '';
-      userIn.placeholder = 'user@company.com';
-      passIn.style.borderColor = '';
-      passIn.style.background = '';
-      passIn.placeholder = 'Enter password';
-      document.getElementById('userLabel').textContent = 'Username';
-      document.getElementById('passLabel').textContent = 'Password';
+    /**
+     * GET / - Show the dashboard.
+     */
+    public function index()
+    {
+        $payloads = $this->listPayloads();
+        $scripts  = $this->listScripts();
+        $settings = $this->loadSettings();
+
+        return view('dashboard', compact('payloads', 'scripts', 'settings'));
     }
 
-    // -- Tokens: now objects with {name, default} --
-    // Normalize: accept both old string[] and new object[] formats
-    var tokenList = [];
-    if (tokenObjs && tokenObjs.length > 0) {
-      tokenObjs.forEach(function(t) {
-        if (typeof t === 'string') {
-          tokenList.push({ name: t, dflt: null });
-        } else {
-          tokenList.push({ name: t.name, dflt: t['default'] || null });
+    /**
+     * POST /payload - Save a job configuration with encrypted credentials.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'target_url'        => 'nullable|url',
+            'username'          => 'nullable|string',
+            'password'          => 'nullable|string',
+            'script_path'       => 'nullable|string',
+            'script_mode'       => 'nullable|in:pagecast,existing',
+            'needs_developer'   => 'nullable',
+            'token_keys'        => 'nullable|array',
+            'token_keys.*'      => 'nullable|string',
+            'token_values'      => 'nullable|array',
+            'token_values.*'    => 'nullable|string',
+            's3_output_bucket'  => 'nullable|string',
+            's3_output_prefix'  => 'nullable|string',
+            'payload_name'      => 'required|string|regex:/^[a-zA-Z0-9_\-]+$/',
+        ]);
+
+        // -- Load existing JSON if present (to preserve credentials / tokens) --
+        $filename = $validated['payload_name'] . '.json';
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
+        $existing = null;
+        if (file_exists($filepath)) {
+            $existing = json_decode(file_get_contents($filepath), true);
         }
-      });
-    }
 
-    if (tokenList.length === 0 && !usesUrl && !usesCreds) {
-      hint.style.display = 'none';
-      sub.textContent = 'Values your script needs to run';
-      if (badge) badge.style.display = 'none';
-      tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
-        + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
-      refreshTokenBorders();
-      return;
-    }
-
-    // Filter target_url from token table (it has its own field)
-    var filtered = tokenList.filter(function(t) { return t.name !== 'target_url'; });
-
-    tbody.innerHTML = '';
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
-        + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
-    } else {
-      filtered.forEach(function(tok) {
-        var row = document.createElement('tr');
-        var valAttr = tok.dflt ? ' value="' + tok.dflt.replace(/"/g, '&quot;') + '"' : '';
-        var placeholder = tok.dflt ? 'default: ' + tok.dflt : 'Enter value for ' + tok.name;
-        row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + tok.name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
-          + '<td><input class="field-input" name="token_values[]"' + valAttr + ' placeholder="' + placeholder.replace(/"/g, '&quot;') + '"'
-          + (tok.dflt ? ' style="color:var(--green)"' : '') + '></td>';
-        tbody.appendChild(row);
-      });
-    }
-    refreshTokenBorders();
-
-    // Build detection summary
-    var parts = [];
-    if (usesUrl) parts.push('target URL' + (suggestedUrl ? ' \u2714' : ''));
-    if (usesCreds) parts.push('credentials' + (hasSavedCreds ? ' \u2714' : ''));
-    if (filtered.length > 0) {
-      var withDefaults = filtered.filter(function(t) { return t.dflt; }).length;
-      var label = filtered.length + ' token' + (filtered.length > 1 ? 's' : '');
-      if (withDefaults > 0) label += ' (' + withDefaults + ' pre-filled)';
-      parts.push(label);
-    }
-
-    hint.style.display = 'block';
-    hintT.textContent = 'Auto-detected from script: ' + parts.join(', ') + '.';
-    sub.textContent = parts.join(' + ');
-
-    if (badge) {
-      badge.textContent = parts.join(' + ');
-      badge.style.display = 'inline-block';
-    }
-
-    checkRunReady();
-  }
-
-  function refreshTokenBorders() {
-    var rows = document.querySelectorAll('#tokenTable tbody tr');
-    rows.forEach(function(r) {
-      r.querySelectorAll('.field-input').forEach(function(inp) {
-        inp.style.borderRadius = '0';
-        inp.style.borderRight = 'none';
-        inp.style.borderBottom = 'none';
-      });
-    });
-    if (rows.length > 0) {
-      var first = rows[0], last = rows[rows.length - 1];
-      first.querySelector('td:first-child .field-input').style.borderTopLeftRadius = 'var(--radius)';
-      first.querySelector('td:last-child .field-input').style.borderTopRightRadius = 'var(--radius)';
-      first.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
-      last.querySelector('td:first-child .field-input').style.borderBottomLeftRadius = 'var(--radius)';
-      last.querySelector('td:last-child .field-input').style.borderBottomRightRadius = 'var(--radius)';
-      last.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
-      last.querySelectorAll('.field-input').forEach(function(inp) { inp.style.borderBottom = '1px solid var(--border)'; });
-      rows.forEach(function(r, i) {
-        if (i > 0 && i < rows.length - 1)
-          r.querySelector('td:last-child .field-input').style.borderRight = '1px solid var(--border)';
-      });
-    }
-  }
-
-  // ── Script path branching ───────────────────────────
-  var currentMode = '';
-
-  function selectScriptPath(mode) {
-    currentMode = mode;
-    document.getElementById('scriptModeInput').value = mode;
-    document.getElementById('cardPagecast').classList.toggle('active', mode === 'pagecast');
-    document.getElementById('cardExisting').classList.toggle('active', mode === 'existing');
-    document.getElementById('panelPagecast').style.display = mode === 'pagecast' ? 'block' : 'none';
-    document.getElementById('panelExisting').style.display = mode === 'existing' ? 'block' : 'none';
-    if (mode !== 'existing') {
-      showEmptyPreview();
-      hideScriptCues();
-      resetTokenTable();
-    }
-    checkRunReady();
-  }
-
-  // ── Script Preview ──────────────────────────────────
-  function showEmptyPreview() {
-    document.getElementById('scriptPreviewHeader').style.display = 'none';
-    document.getElementById('scriptPreviewBadge').style.display = 'none';
-    document.getElementById('scriptPreviewBody').innerHTML =
-      '<div class="script-preview-empty"><div class="script-preview-empty-icon">&#x1F4C4;</div>'
-      + 'Select a navigation script in Step 1<br>to see a preview here</div>';
-  }
-
-  function highlightScript(source) {
-    var h = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // Comments
-    h = h.replace(/(^|\n)([ \t]*#[^\n]*)/g, '$1<span class="tok-cm">$2</span>');
-
-    // Triple-quoted strings
-    h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g, '<span class="tok-str">$1</span>');
-    // Single-line strings
-    h = h.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>');
-
-    // Token and context references
-    h = h.replace(/(tokens\s*\[\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;)\s*\])/g, '<span class="tok-ref">$1</span>');
-    h = h.replace(/(tokens\s*\.\s*get\s*\(\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;))/g, '<span class="tok-ref">$1</span>');
-    h = h.replace(/(context\s*\[\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;)\s*\])/g, '<span class="tok-ref">$1</span>');
-
-    // Keywords
-    ['def ','import ','from ','return ','if ','else:','elif ','for ','in ','while ',
-     'try:','except ','finally:','class ','with ','as ','pass','raise ','True','False','None'
-    ].forEach(function(kw) {
-      var re = new RegExp('(?<![a-zA-Z_])(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![a-zA-Z_])', 'g');
-      h = h.replace(re, '<span class="tok-kw">$1</span>');
-    });
-
-    return h;
-  }
-
-  function fetchScriptContent(scriptName) {
-    if (!scriptName) { showEmptyPreview(); return; }
-    fetch('/script/' + encodeURIComponent(scriptName) + '/content')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.content) {
-          document.getElementById('scriptPreviewHeader').style.display = 'flex';
-          document.getElementById('scriptPreviewName').textContent = data.name || scriptName;
-          document.getElementById('scriptPreviewBody').innerHTML =
-            '<pre class="script-preview-code">' + highlightScript(data.content) + '</pre>';
+        // Also check for a companion JSON matching the script name
+        if (!$existing && !empty($validated['script_path'])) {
+            $scriptBase = pathinfo($validated['script_path'], PATHINFO_FILENAME);
+            $companionPath = $this->jobsDir . DIRECTORY_SEPARATOR . $scriptBase . '.json';
+            if (file_exists($companionPath)) {
+                $existing = json_decode(file_get_contents($companionPath), true);
+            }
         }
-      })
-      .catch(function() { showEmptyPreview(); });
-  }
 
-  // ── Script analysis (tokens + cues) ─────────────────
-  function analyseScript(scriptName) {
-    if (!scriptName) {
-      hideScriptCues();
-      resetTokenTable();
-      return;
-    }
-    fetch('/script/' + encodeURIComponent(scriptName) + '/tokens')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        setTokensFromScript(
-          data.tokens || [],
-          data.uses_target_url || false,
-          data.uses_credentials || false,
-          data.suggested_url || null,
-          data.has_saved_creds || false
+        // -- Credentials: encrypt new ones, or preserve existing --
+        $credentials = null;
+        if (!empty($validated['username']) && !empty($validated['password'])) {
+            // User entered new credentials → encrypt them
+            $credentials = $this->encryptCredentials(
+                $validated['username'],
+                $validated['password']
+            );
+
+            if ($credentials === null) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['credentials' => 'Encryption failed. Check .emulation_key file and PHP openssl extension.']);
+            }
+        } elseif ($existing && !empty($existing['credentials'])) {
+            // User left fields blank → preserve existing encrypted credentials
+            $credentials = $existing['credentials'];
+        }
+
+        // -- Tokens --
+        $tokens = $this->parseTokenArrays(
+            $validated['token_keys'] ?? [],
+            $validated['token_values'] ?? []
         );
-      })
-      .catch(function() {});
-  }
 
-  // ── Inline upload (via JS fetch, NOT a nested form) ──
-  function handleInlineFileSelect(input) {
-    var name = input.files[0] ? input.files[0].name : '';
-    var textEl = document.getElementById('inlineUploadText');
-    var btnEl  = document.getElementById('inlineUploadBtn');
-    if (name) {
-      textEl.innerHTML = '<strong>' + name + '</strong> selected';
-      btnEl.style.display = 'inline-block';
-    } else {
-      textEl.innerHTML = 'Or <strong>upload a .py script</strong> or <strong>.json config</strong>';
-      btnEl.style.display = 'none';
-    }
-  }
+        // Inject target_url into tokens so scripts can use tokens["target_url"]
+        $targetUrl = $validated['target_url'] ?? null;
 
-  function doInlineUpload() {
-    var input = document.getElementById('hiddenFileInput');
-    if (!input.files[0]) return;
-
-    var formData = new FormData();
-    formData.append('payload_file', input.files[0]);
-    formData.append('_token', document.querySelector('#payloadForm input[name="_token"]').value);
-
-    var textEl = document.getElementById('inlineUploadText');
-    textEl.innerHTML = '<strong>Uploading...</strong>';
-
-    fetch('{{ route("payload.upload") }}', { method: 'POST', body: formData })
-      .then(function(r) {
-        if (r.redirected) {
-          window.location.href = r.url;
-        } else {
-          window.location.reload();
+        // If target_url is blank, try to preserve from existing
+        if (empty($targetUrl) && $existing && !empty($existing['target_url'])) {
+            $targetUrl = $existing['target_url'];
         }
-      })
-      .catch(function() {
-        textEl.innerHTML = '<strong style="color:var(--red)">Upload failed. Try again.</strong>';
-      });
-  }
 
-  // ── Developer checkbox ──────────────────────────────
-  document.getElementById('devCheck').addEventListener('change', function() {
-    document.getElementById('devMsg').style.display = this.checked ? 'flex' : 'none';
-    checkRunReady();
-  });
+        if (!empty($targetUrl)) {
+            $tokens['target_url'] = $targetUrl;
+        }
 
-  // ── Validation ──────────────────────────────────────
-  function checkRunReady() {
-    var btn    = document.getElementById('runJobBtn');
-    var helper = document.getElementById('runJobHelper');
-    var saveH  = document.getElementById('saveHelper');
-    var form   = document.getElementById('payloadForm');
-    if (!form || !btn) return;
+        // Merge with existing token values for any keys that were left blank
+        if ($existing && !empty($existing['tokens']) && is_array($existing['tokens'])) {
+            foreach ($existing['tokens'] as $k => $v) {
+                if (!isset($tokens[$k]) || $tokens[$k] === '') {
+                    $tokens[$k] = $v;
+                }
+            }
+        }
 
-    var nameVal    = (form.querySelector('[name="payload_name"]').value || '').trim();
-    var urlVal     = (document.getElementById('targetUrlInput').value || '').trim();
-    var scriptSel  = document.getElementById('scriptSelect');
-    var scriptVal  = scriptSel ? scriptSel.value : '';
-    var devChecked = document.getElementById('devCheck').checked;
+        $needsDeveloper = !empty($validated['needs_developer']);
+        $scriptMode     = $validated['script_mode'] ?? '';
 
-    if (devChecked) {
-      btn.disabled = true;
-      helper.textContent = 'Save your configuration, then share it with your developer';
-      helper.className = 'btn-helper warning';
-      saveH.textContent = 'Saves configuration for developer handoff';
-      saveH.className = 'btn-helper ready';
-      return;
+        $status = 'ready';
+        if ($needsDeveloper) {
+            $status = 'needs_developer';
+        } elseif ($scriptMode === 'pagecast') {
+            $status = 'needs_recording';
+        } elseif (empty($validated['script_path'])) {
+            $status = 'needs_script';
+        }
+
+        $payload = [
+            'target_url'       => $targetUrl,
+            'script_path'      => $validated['script_path'] ?? null,
+            'script_mode'      => $scriptMode,
+            'status'           => $status,
+            'tokens'           => (object) $tokens,
+            'credentials'      => $credentials,
+            's3_output_bucket' => $validated['s3_output_bucket'] ?? null,
+            's3_output_prefix' => $validated['s3_output_prefix'] ?? null,
+        ];
+
+        $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
+
+        file_put_contents($filepath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        // If "Run Job" was clicked, save then immediately execute
+        if ($request->input('action') === 'save_and_run' && $status === 'ready') {
+            return $this->run($validated['payload_name']);
+        }
+
+        $message = match($status) {
+            'needs_developer'  => "Configuration saved: {$filename}. Share this file with your developer.",
+            'needs_recording'  => "Configuration saved: {$filename}. Record your navigation with PageCast to complete setup.",
+            'needs_script'     => "Configuration saved: {$filename}. A navigation script is still needed.",
+            default            => "Configuration saved: {$filename}",
+        };
+
+        return redirect('/')->with('success', $message);
     }
-    if (currentMode === 'pagecast') {
-      btn.disabled = true;
-      helper.textContent = 'Record your navigation with PageCast first';
-      helper.className = 'btn-helper warning';
-      saveH.textContent = 'Saves your job configuration to jobs/';
-      saveH.className = 'btn-helper';
-      return;
-    }
-    var missing = [];
-    if (!nameVal) missing.push('Job Name');
-    if (currentMode !== 'existing') missing.push('Navigation Script');
-    else if (!scriptVal) missing.push('Navigation Script');
 
-    if (missing.length > 0) {
-      btn.disabled = true;
-      helper.textContent = 'Missing: ' + missing.join(', ');
-      helper.className = 'btn-helper warning';
-    } else {
-      btn.disabled = false;
-      helper.textContent = 'Saves configuration then executes the job';
-      helper.className = 'btn-helper ready';
-    }
-    saveH.textContent = 'Saves your job configuration to jobs/';
-    saveH.className = 'btn-helper';
-  }
+    /**
+     * POST /payload/upload - Upload a .json config or .py navigation script.
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'payload_file' => 'required|file|max:512',
+        ]);
 
-  // ── Wire up watchers ───────────────────────────────
-  (function() {
-    var form = document.getElementById('payloadForm');
-    if (!form) return;
-    form.querySelector('[name="payload_name"]').addEventListener('input', checkRunReady);
-    document.getElementById('targetUrlInput').addEventListener('input', checkRunReady);
+        $file = $request->file('payload_file');
+        $ext  = strtolower($file->getClientOriginalExtension());
+        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $name = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name);
 
-    var scriptSel = document.getElementById('scriptSelect');
-    if (scriptSel) {
-      scriptSel.addEventListener('change', function() {
-        checkRunReady();
-        analyseScript(this.value);
-        fetchScriptContent(this.value);
-      });
+        // -- Python navigation script --
+        if ($ext === 'py') {
+            $filename = $name . '.py';
+            $file->move($this->jobsDir, $filename);
+
+            return redirect('/')->with('success', "Script uploaded: {$filename}");
+        }
+
+        // -- JSON payload config --
+        if ($ext === 'json' || $ext === 'txt') {
+            $contents = file_get_contents($file->getRealPath());
+            $decoded  = json_decode($contents, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->withErrors(['payload_file' => 'Invalid JSON file.']);
+            }
+
+            $filename = $name . '.json';
+            $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
+            file_put_contents($filepath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+            return redirect('/')->with('success', "Configuration uploaded: {$filename}");
+        }
+
+        return back()->withErrors(['payload_file' => 'Unsupported file type. Upload a .py script or .json configuration.']);
     }
-    checkRunReady();
-  })();
-</script>
-</body>
-</html>
+
+
+    /**
+     * GET /script/{name}/tokens - Deep-analyse a .py script.
+     *
+     * Extracts:
+     *   tokens["key"], tokens.get("key", "default")  - token names + default values
+     *   Hardcoded https:// URLs                       - suggested target_url
+     *   context["target_url"]                         - uses_target_url flag
+     *   context["credentials"], creds.get(            - uses_credentials flag
+     *   Companion .json (same basename)               - saved values for all fields
+     */
+    public function scriptTokens(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
+
+        $empty = [
+            'tokens'            => [],
+            'uses_target_url'   => false,
+            'uses_credentials'  => false,
+            'suggested_url'     => null,
+            'has_saved_creds'   => false,
+        ];
+
+        if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
+            return response()->json($empty, 200);
+        }
+
+        $source = file_get_contents($filepath);
+
+        // -- 1. Token names (bracket access): tokens["key"] --
+        preg_match_all('/tokens\s*\[\s*["\']([^"\']+)["\']\s*\]/', $source, $m1);
+
+        // -- 2. Token names + defaults (.get access) --
+        //    tokens.get("key", "default")  or  tokens.get("key")
+        preg_match_all(
+            '/tokens\s*\.\s*get\s*\(\s*["\']([^"\']+)["\']\s*(?:,\s*["\']([^"\']*)["\'])?\s*\)/',
+            $source, $m2
+        );
+
+        // Merge names, preserve defaults
+        $allNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
+        $defaults = [];
+        if (!empty($m2[1])) {
+            foreach ($m2[1] as $i => $key) {
+                $val = $m2[2][$i] ?? '';
+                if ($val !== '') {
+                    $defaults[$key] = $val;
+                }
+            }
+        }
+
+        // Build tokens array with defaults
+        $tokens = [];
+        foreach ($allNames as $tName) {
+            $tokens[] = [
+                'name'    => $tName,
+                'default' => $defaults[$tName] ?? null,
+            ];
+        }
+
+        // -- 3. Target URL detection --
+        $usesTargetUrl = (bool) preg_match('/context\s*\[\s*["\']target_url["\']\s*\]/', $source)
+                      || in_array('target_url', $allNames, true);
+
+        // -- 4. Credentials detection --
+        $usesCredentials = (bool) preg_match('/context\s*\[\s*["\']credentials["\']\s*\]/', $source)
+                        || (bool) preg_match('/creds\s*[\.\[]/', $source);
+
+        // -- 5. Extract hardcoded URLs from the script --
+        preg_match_all('/"(https?:\/\/[^"]+)"/', $source, $urlM1);
+        preg_match_all("/\'(https?:\/\/[^']+)\'/", $source, $urlM2);
+        $urls = array_values(array_unique(array_merge($urlM1[1] ?? [], $urlM2[1] ?? [])));
+
+        // Suggest target_url: prefer a /login URL, else derive from first URL's domain
+        $suggestedUrl = null;
+        if ($usesTargetUrl && !empty($urls)) {
+            foreach ($urls as $u) {
+                if (preg_match('/\/login/i', $u)) {
+                    $suggestedUrl = $u;
+                    break;
+                }
+            }
+            if (!$suggestedUrl) {
+                $parsed = parse_url($urls[0]);
+                if ($parsed) {
+                    $suggestedUrl = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? '') . '/login';
+                }
+            }
+        }
+
+        // -- 6. Check for companion .json with saved values --
+        $baseName     = pathinfo($name, PATHINFO_FILENAME);
+        $jsonPath     = $this->jobsDir . DIRECTORY_SEPARATOR . $baseName . '.json';
+        $hasSavedCreds = false;
+
+        if (file_exists($jsonPath)) {
+            $saved = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($saved)) {
+                // Override suggested URL with saved value
+                if (!empty($saved['target_url'])) {
+                    $suggestedUrl = $saved['target_url'];
+                }
+
+                // Override token defaults with saved values
+                if (!empty($saved['tokens']) && is_array($saved['tokens'])) {
+                    foreach ($tokens as &$tok) {
+                        if (isset($saved['tokens'][$tok['name']])) {
+                            $tok['default'] = $saved['tokens'][$tok['name']];
+                        }
+                    }
+                    unset($tok);
+                }
+
+                // Flag that credentials are already saved (encrypted)
+                if (!empty($saved['credentials']['username']) && !empty($saved['credentials']['password'])) {
+                    $hasSavedCreds = true;
+                }
+            }
+        }
+
+        return response()->json([
+            'tokens'            => $tokens,
+            'uses_target_url'   => $usesTargetUrl,
+            'uses_credentials'  => $usesCredentials,
+            'suggested_url'     => $suggestedUrl,
+            'has_saved_creds'   => $hasSavedCreds,
+        ]);
+    }
+
+
+    /**
+     * GET /script/{name}/content - Return the source code of a .py script for preview.
+     */
+    public function scriptContent(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
+
+        if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
+            return response()->json(['content' => '', 'name' => $name], 404);
+        }
+
+        $source = file_get_contents($filepath);
+
+        return response()->json(['content' => $source, 'name' => $name]);
+    }
+
+    /**
+     * GET /payload/{name} - View a payload file as JSON.
+     */
+    public function show(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
+
+        if (!file_exists($filepath)) {
+            abort(404, 'Payload not found.');
+        }
+
+        $content = json_decode(file_get_contents($filepath), true);
+
+        return response()->json($content, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * DELETE /payload/{name} - Delete a payload file.
+     */
+    public function destroy(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
+
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+
+        return redirect('/')->with('success', "Payload deleted: {$name}.json");
+    }
+
+    /**
+     * POST /payload/{name}/run - Execute a payload via runner.py.
+     *
+     * On Windows, uses proc_open with create_new_console so the
+     * browser window is visible on the user's desktop (not hidden
+     * inside Apache's service session).
+     */
+    public function run(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name . '.json';
+
+        if (!file_exists($filepath)) {
+            return back()->withErrors(['run' => "Payload not found: {$name}.json"]);
+        }
+
+        $relativePath = 'jobs/' . $name . '.json';
+
+        try {
+            $startTime = microtime(true);
+            $uv = $this->getUvCommand();
+
+            if (PHP_OS_FAMILY === 'Windows') {
+                // On Windows, proc_open with create_new_console ensures the
+                // browser opens on the user's desktop instead of Session 0.
+                $cmd = escapeshellarg($uv) . ' run python run.py ' . escapeshellarg($relativePath);
+
+                $descriptors = [
+                    0 => ['pipe', 'r'],   // stdin
+                    1 => ['pipe', 'w'],   // stdout
+                    2 => ['pipe', 'w'],   // stderr
+                ];
+
+                $proc = proc_open(
+                    $cmd,
+                    $descriptors,
+                    $pipes,
+                    $this->appRoot,
+                    null,
+                    ['create_new_console' => true]
+                );
+
+                if (!is_resource($proc)) {
+                    throw new \RuntimeException("Failed to launch runner process.");
+                }
+
+                fclose($pipes[0]); // close stdin
+
+                // Read output (blocks until process completes)
+                $stdout = stream_get_contents($pipes[1]);
+                $stderr = stream_get_contents($pipes[2]);
+
+                fclose($pipes[1]);
+                fclose($pipes[2]);
+
+                $exitCode = proc_close($proc);
+
+                $output  = $stdout . "\n" . $stderr;
+                $success = ($exitCode === 0) && !str_contains($output, '"status": "error"');
+
+            } else {
+                // Unix: standard Laravel Process
+                $result = Process::path($this->appRoot)
+                    ->timeout(300)
+                    ->run([$uv, 'run', 'python', 'run.py', $relativePath]);
+
+                $output  = $result->output() . "\n" . $result->errorOutput();
+                $success = $result->successful() && !str_contains($output, '"status": "error"');
+            }
+
+            $elapsed = round(microtime(true) - $startTime);
+
+            $logEntries  = $this->parseLogOutput($output);
+            $statusText  = $success
+                ? "Job completed successfully - {$elapsed} seconds"
+                : "Job failed after {$elapsed} seconds";
+
+            return redirect('/')
+                ->with('success', $success ? "Job completed: {$name}.json" : null)
+                ->withErrors($success ? [] : ['run' => "Job failed: {$name}.json"])
+                ->with('job_log', $logEntries)
+                ->with('job_success', $success)
+                ->with('job_status_text', $statusText);
+
+        } catch (\Exception $e) {
+            $hint = str_contains($e->getMessage(), 'cannot find') || str_contains($e->getMessage(), 'not recognized')
+                ? ' Set the full path to uv in Settings (gear icon).'
+                : '';
+
+            return redirect('/')
+                ->withErrors(['run' => 'Failed to start job: ' . $e->getMessage() . $hint])
+                ->with('job_log', [[
+                    'time'  => now()->format('H:i:s'),
+                    'icon'  => '&#x274C;',
+                    'html'  => '<strong>Failed to start</strong> ' . e($e->getMessage() . $hint),
+                ]])
+                ->with('job_success', false)
+                ->with('job_status_text', 'Job could not be started');
+        }
+    }
+
+    /**
+     * POST /settings - Save configuration.
+     */
+    public function saveSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'uv_path'          => 'nullable|string',
+            'driver'           => 'required|in:selenium,playwright',
+            's3_output_bucket' => 'nullable|string',
+            's3_output_prefix' => 'nullable|string',
+        ]);
+
+        $settingsPath = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_settings.json';
+        file_put_contents($settingsPath, json_encode($validated, JSON_PRETTY_PRINT));
+
+        return redirect('/')->with('success', 'Settings saved.');
+    }
+
+    // ----------------------------------------------------------------
+    //  Encryption
+    // ----------------------------------------------------------------
+
+    private function encryptCredentials(string $username, string $password): ?array
+    {
+        try {
+            // Read the encryption key from .emulation_key
+            $keyFile = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_key';
+
+            if (!file_exists($keyFile)) {
+                // Auto-generate a key (mirrors CredentialManager._load_or_generate_key)
+                $keyText = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+                file_put_contents($keyFile, $keyText);
+                Log::info('Generated new encryption key', ['path' => $keyFile]);
+            }
+
+            $keyText = trim(file_get_contents($keyFile));
+            if (empty($keyText)) {
+                Log::error('Encryption key file is empty', ['path' => $keyFile]);
+                return null;
+            }
+
+            // Derive a 32-byte key using SHA-256 (matches CredentialManager._padded_key)
+            $derivedKey = hash('sha256', $keyText, true);  // raw 32 bytes
+
+            // AES-256-CTR with a zero IV (matches pyaes default CTR nonce)
+            $iv = str_repeat("\0", 16);
+
+            // openssl_encrypt with OPENSSL_RAW_DATA returns raw ciphertext (no base64)
+            // We base64-encode ourselves to match the Python side exactly.
+            $encUser = openssl_encrypt($username, 'aes-256-ctr', $derivedKey, OPENSSL_RAW_DATA, $iv);
+            $encPass = openssl_encrypt($password, 'aes-256-ctr', $derivedKey, OPENSSL_RAW_DATA, $iv);
+
+            if ($encUser === false || $encPass === false) {
+                Log::error('openssl_encrypt returned false', ['error' => openssl_error_string()]);
+                return null;
+            }
+
+            return [
+                'username' => base64_encode($encUser),
+                'password' => base64_encode($encPass),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Credential encryption exception', ['message' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    // ----------------------------------------------------------------
+    //  Helpers
+    // ----------------------------------------------------------------
+
+    /**
+     * Parse console output from runner.py into structured log entries.
+     * Format: "    [HH:MM:SS.mmm] message  |  detail"
+     */
+    private function parseLogOutput(string $output): array
+    {
+        $entries = [];
+        $lines = explode("\n", $output);
+
+        // Icon map: keyword => emoji
+        $iconMap = [
+            'payload'     => '&#x1F4C4;',
+            'credential'  => '&#x1F513;',
+            'decrypt'     => '&#x1F513;',
+            'encrypt'     => '&#x1F512;',
+            'browser'     => '&#x1F310;',
+            'navigat'     => '&#x1F4CA;',
+            'login'       => '&#x1F511;',
+            'download'    => '&#x2B07;&#xFE0F;',
+            'screenshot'  => '&#x1F4F7;',
+            'upload'      => '&#x2601;&#xFE0F;',
+            'cleanup'     => '&#x1F9F9;',
+            'closed'      => '&#x1F9F9;',
+            'success'     => '&#x2705;',
+            'complete'    => '&#x2705;',
+            'error'       => '&#x274C;',
+            'fail'        => '&#x274C;',
+            'warn'        => '&#x26A0;&#xFE0F;',
+            'date'        => '&#x1F4C5;',
+            'report'      => '&#x1F4CA;',
+            'script'      => '&#x1F4DD;',
+        ];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Match logger format: [HH:MM:SS.mmm] message  |  detail
+            if (preg_match('/^\[(\d{2}:\d{2}:\d{2}(?:\.\d+)?)\]\s*(.+)$/', $line, $m)) {
+                $time    = substr($m[1], 0, 8); // HH:MM:SS
+                $content = $m[2];
+
+                // Split on " | " for detail
+                $parts   = preg_split('/\s+\|\s+/', $content, 2);
+                $message = $parts[0];
+                $detail  = $parts[1] ?? '';
+
+                // Strip log level prefix like [INFO ] or [OK   ]
+                $message = preg_replace('/^\[\w+\s*\]\s*/', '', $message);
+
+                // Pick icon
+                $icon = '&#x25CF;'; // default dot
+                $lower = strtolower($message . ' ' . $detail);
+                foreach ($iconMap as $keyword => $emoji) {
+                    if (str_contains($lower, $keyword)) {
+                        $icon = $emoji;
+                        break;
+                    }
+                }
+
+                // Build HTML: bold the message, detail in normal weight
+                $html = '<strong>' . e($message) . '</strong>';
+                if ($detail) {
+                    $html .= ' ' . e($detail);
+                }
+
+                $entries[] = [
+                    'time' => $time,
+                    'icon' => $icon,
+                    'html' => $html,
+                ];
+            }
+        }
+
+        // If no structured lines found, show raw output as single entry
+        if (empty($entries) && trim($output) !== '') {
+            $entries[] = [
+                'time' => now()->format('H:i:s'),
+                'icon' => '&#x1F4DD;',
+                'html' => '<strong>Output</strong> <br>' . nl2br(e(trim($output))),
+            ];
+        }
+
+        return $entries;
+    }
+
+    private function parseTokenArrays(array $keys, array $values): array
+    {
+        $tokens = [];
+
+        foreach ($keys as $i => $key) {
+            $key = trim($key);
+            $value = trim($values[$i] ?? '');
+
+            if ($key !== '') {
+                $tokens[$key] = $value;
+            }
+        }
+
+        return $tokens;
+    }
+
+    private function listPayloads(): array
+    {
+        $files = glob($this->jobsDir . DIRECTORY_SEPARATOR . '*.json');
+        return array_map(fn($f) => basename($f, '.json'), $files ?: []);
+    }
+
+    private function listScripts(): array
+    {
+        $files = glob($this->jobsDir . DIRECTORY_SEPARATOR . '*.py');
+        return array_map(fn($f) => basename($f), $files ?: []);
+    }
+
+    private function loadSettings(): array
+    {
+        $settingsPath = $this->appRoot . DIRECTORY_SEPARATOR . '.emulation_settings.json';
+
+        $defaults = [
+            'uv_path'          => '',
+            'driver'           => 'selenium',
+            's3_output_bucket' => '',
+            's3_output_prefix' => '',
+        ];
+
+        if (file_exists($settingsPath)) {
+            $decoded = json_decode(file_get_contents($settingsPath), true);
+            if (is_array($decoded)) {
+                $defaults = array_merge($defaults, $decoded);
+            }
+        }
+
+        // Auto-discover uv if not set or if the saved path no longer exists
+        if (empty($defaults['uv_path']) || !file_exists($defaults['uv_path'])) {
+            $discovered = $this->discoverUvPath();
+            if ($discovered) {
+                $defaults['uv_path'] = $discovered;
+
+                // Persist so we only discover once
+                file_put_contents($settingsPath, json_encode($defaults, JSON_PRETTY_PRINT));
+            }
+        }
+
+        return $defaults;
+    }
+
+    /**
+     * Resolve the full path to the uv executable from settings, or fall back to 'uv'.
+     */
+    private function getUvCommand(): string
+    {
+        $settings = $this->loadSettings();
+        $path = trim($settings['uv_path'] ?? '');
+
+        return $path !== '' ? $path : 'uv';
+    }
+
+    /**
+     * Attempt to find the uv binary on the system.
+     *
+     * Strategy (Windows):
+     *   1. 'where uv' (relies on PATH, often fails under Apache)
+     *   2. Resolve the real user home via multiple env vars
+     *   3. Check common install locations under each candidate home
+     *   4. Scan C:\Users\*\.local\bin\uv.exe as a last resort
+     *
+     * Strategy (Unix):
+     *   1. 'which uv'
+     *   2. Check common paths under $HOME
+     */
+    private function discoverUvPath(): ?string
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return $this->discoverUvWindows();
+        }
+
+        return $this->discoverUvUnix();
+    }
+
+    private function discoverUvWindows(): ?string
+    {
+        // 1. Try 'where uv'
+        $output = [];
+        @exec('where uv 2>nul', $output, $code);
+        if ($code === 0 && !empty($output[0]) && file_exists(trim($output[0]))) {
+            return trim($output[0]);
+        }
+
+        // 2. Build a list of candidate home directories
+        $homes = array_filter(array_unique([
+            getenv('USERPROFILE'),
+            getenv('HOMEDRIVE') && getenv('HOMEPATH') ? getenv('HOMEDRIVE') . getenv('HOMEPATH') : '',
+            getenv('HOME'),
+        ]));
+
+        // Sub-paths where uv might live
+        $subPaths = [
+            '.local\\bin\\uv.exe',          // Official installer (astral.sh)
+            '.cargo\\bin\\uv.exe',           // Cargo install
+            'AppData\\Local\\uv\\uv.exe',    // Some package managers
+            'AppData\\Roaming\\uv\\uv.exe',
+            'AppData\\Local\\Programs\\uv\\uv.exe',
+            'scoop\\shims\\uv.exe',          // Scoop
+        ];
+
+        foreach ($homes as $home) {
+            foreach ($subPaths as $sub) {
+                $candidate = $home . '\\' . $sub;
+                if (file_exists($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        // 3. Check standalone paths
+        $standalone = [
+            'C:\\Program Files\\uv\\uv.exe',
+            'C:\\Program Files (x86)\\uv\\uv.exe',
+        ];
+
+        foreach ($standalone as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        // 4. Scan all user profiles as last resort (Apache often runs as SYSTEM)
+        $usersDir = 'C:\\Users';
+        if (is_dir($usersDir)) {
+            $dirs = @scandir($usersDir);
+            if ($dirs) {
+                foreach ($dirs as $dir) {
+                    if ($dir === '.' || $dir === '..' || $dir === 'Public' || $dir === 'Default') {
+                        continue;
+                    }
+
+                    foreach ($subPaths as $sub) {
+                        $candidate = $usersDir . '\\' . $dir . '\\' . $sub;
+                        if (file_exists($candidate)) {
+                            return $candidate;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function discoverUvUnix(): ?string
+    {
+        $output = [];
+        @exec('which uv 2>/dev/null', $output, $code);
+        if ($code === 0 && !empty($output[0]) && file_exists(trim($output[0]))) {
+            return trim($output[0]);
+        }
+
+        $home = getenv('HOME') ?: (getenv('SUDO_USER') ? '/home/' . getenv('SUDO_USER') : '');
+
+        $candidates = array_filter([
+            $home ? $home . '/.local/bin/uv' : null,
+            $home ? $home . '/.cargo/bin/uv' : null,
+            '/usr/local/bin/uv',
+            '/usr/bin/uv',
+            '/opt/homebrew/bin/uv',
+        ]);
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+}
