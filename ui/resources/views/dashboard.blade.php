@@ -802,7 +802,7 @@
     if (!kn) row.querySelector('input').focus();
   }
 
-  function setTokensFromScript(tokenNames, usesUrl, usesCreds) {
+  function setTokensFromScript(tokenObjs, usesUrl, usesCreds, suggestedUrl, hasSavedCreds) {
     var tbody = document.querySelector('#tokenTable tbody');
     var hint  = document.getElementById('tokenHint');
     var hintT = document.getElementById('tokenHintText');
@@ -811,31 +811,41 @@
     var urlBadge  = document.getElementById('urlBadge');
     var credBadge = document.getElementById('credsBadge');
     var urlInput  = document.getElementById('targetUrlInput');
+    var userIn = document.getElementById('usernameInput');
+    var passIn = document.getElementById('passwordInput');
 
-    // -- URL badge --
+    // -- URL: auto-fill from script + badge --
     if (usesUrl) {
       urlBadge.style.display = 'inline-flex';
       urlInput.style.borderColor = 'var(--green)';
       urlInput.style.background = 'var(--green-bg)';
+      if (suggestedUrl && !urlInput.value) {
+        urlInput.value = suggestedUrl;
+      }
     } else {
       urlBadge.style.display = 'none';
       urlInput.style.borderColor = '';
       urlInput.style.background = '';
     }
 
-    // -- Credentials badge + field highlighting --
+    // -- Credentials: highlight + show saved state --
     credBadge.style.display = usesCreds ? 'inline-flex' : 'none';
-    var userIn = document.getElementById('usernameInput');
-    var passIn = document.getElementById('passwordInput');
     if (usesCreds) {
       userIn.style.borderColor = 'var(--green)';
       userIn.style.background = 'var(--green-bg)';
-      userIn.placeholder = 'Required by script';
       passIn.style.borderColor = 'var(--green)';
       passIn.style.background = 'var(--green-bg)';
-      passIn.placeholder = 'Required by script';
-      document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; script</span>';
-      document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; script</span>';
+      if (hasSavedCreds) {
+        userIn.placeholder = 'Saved (leave blank to keep)';
+        passIn.placeholder = 'Saved (leave blank to keep)';
+        document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; saved</span>';
+        document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--green);font-size:10px;font-weight:600">&#x2714; saved</span>';
+      } else {
+        userIn.placeholder = 'Required by script';
+        passIn.placeholder = 'Required by script';
+        document.getElementById('userLabel').innerHTML = 'Username <span style="color:var(--amber);font-size:10px;font-weight:600">&#x26A0; needed</span>';
+        document.getElementById('passLabel').innerHTML = 'Password <span style="color:var(--amber);font-size:10px;font-weight:600">&#x26A0; needed</span>';
+      }
     } else {
       userIn.style.borderColor = '';
       userIn.style.background = '';
@@ -847,13 +857,23 @@
       document.getElementById('passLabel').textContent = 'Password';
     }
 
-    // -- Tokens --
-    if (!tokenNames || tokenNames.length === 0) {
-      if (!usesUrl && !usesCreds) {
-        hint.style.display = 'none';
-        sub.textContent = 'Values your script needs to run';
-        if (badge) badge.style.display = 'none';
-      }
+    // -- Tokens: now objects with {name, default} --
+    // Normalize: accept both old string[] and new object[] formats
+    var tokenList = [];
+    if (tokenObjs && tokenObjs.length > 0) {
+      tokenObjs.forEach(function(t) {
+        if (typeof t === 'string') {
+          tokenList.push({ name: t, dflt: null });
+        } else {
+          tokenList.push({ name: t.name, dflt: t['default'] || null });
+        }
+      });
+    }
+
+    if (tokenList.length === 0 && !usesUrl && !usesCreds) {
+      hint.style.display = 'none';
+      sub.textContent = 'Values your script needs to run';
+      if (badge) badge.style.display = 'none';
       tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
         + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
       refreshTokenBorders();
@@ -861,17 +881,20 @@
     }
 
     // Filter target_url from token table (it has its own field)
-    var filtered = tokenNames.filter(function(n) { return n !== 'target_url'; });
+    var filtered = tokenList.filter(function(t) { return t.name !== 'target_url'; });
 
     tbody.innerHTML = '';
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
         + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
     } else {
-      filtered.forEach(function(name) {
+      filtered.forEach(function(tok) {
         var row = document.createElement('tr');
-        row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
-          + '<td><input class="field-input" name="token_values[]" placeholder="Enter value for ' + name + '"></td>';
+        var valAttr = tok.dflt ? ' value="' + tok.dflt.replace(/"/g, '&quot;') + '"' : '';
+        var placeholder = tok.dflt ? 'default: ' + tok.dflt : 'Enter value for ' + tok.name;
+        row.innerHTML = '<td><input class="field-input" name="token_keys[]" value="' + tok.name + '" readonly style="color:var(--green);background:var(--green-bg)"></td>'
+          + '<td><input class="field-input" name="token_values[]"' + valAttr + ' placeholder="' + placeholder.replace(/"/g, '&quot;') + '"'
+          + (tok.dflt ? ' style="color:var(--green)"' : '') + '></td>';
         tbody.appendChild(row);
       });
     }
@@ -879,18 +902,25 @@
 
     // Build detection summary
     var parts = [];
-    if (usesUrl) parts.push('target URL');
-    if (usesCreds) parts.push('credentials');
-    if (filtered.length > 0) parts.push(filtered.length + ' token' + (filtered.length > 1 ? 's' : ''));
+    if (usesUrl) parts.push('target URL' + (suggestedUrl ? ' \u2714' : ''));
+    if (usesCreds) parts.push('credentials' + (hasSavedCreds ? ' \u2714' : ''));
+    if (filtered.length > 0) {
+      var withDefaults = filtered.filter(function(t) { return t.dflt; }).length;
+      var label = filtered.length + ' token' + (filtered.length > 1 ? 's' : '');
+      if (withDefaults > 0) label += ' (' + withDefaults + ' pre-filled)';
+      parts.push(label);
+    }
 
     hint.style.display = 'block';
-    hintT.textContent = 'Auto-detected from script: ' + parts.join(', ') + '. Fill in the values below.';
-    sub.textContent = parts.join(' + ') + ' detected';
+    hintT.textContent = 'Auto-detected from script: ' + parts.join(', ') + '.';
+    sub.textContent = parts.join(' + ');
 
     if (badge) {
       badge.textContent = parts.join(' + ');
       badge.style.display = 'inline-block';
     }
+
+    checkRunReady();
   }
 
   function refreshTokenBorders() {
@@ -1000,7 +1030,9 @@
         setTokensFromScript(
           data.tokens || [],
           data.uses_target_url || false,
-          data.uses_credentials || false
+          data.uses_credentials || false,
+          data.suggested_url || null,
+          data.has_saved_creds || false
         );
       })
       .catch(function() {});
