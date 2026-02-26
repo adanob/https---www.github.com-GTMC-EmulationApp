@@ -116,37 +116,72 @@ class EmulationController extends Controller
     }
 
     /**
-     * POST /payload/upload - Upload an existing payload JSON file.
+     * POST /payload/upload - Upload a .json config or .py navigation script.
      */
     public function upload(Request $request)
     {
         $request->validate([
-            'payload_file' => 'required|file|mimes:json,txt|max:512',
+            'payload_file' => 'required|file|max:512',
         ]);
 
         $file = $request->file('payload_file');
-        $contents = file_get_contents($file->getRealPath());
-
-        // Validate it is valid JSON
-        $decoded = json_decode($contents, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return back()->withErrors(['payload_file' => 'Invalid JSON file.']);
-        }
-
-        // Validate it has a target_url at minimum
-        if (empty($decoded['target_url'])) {
-            return back()->withErrors(['payload_file' => 'Payload must contain a target_url field.']);
-        }
-
-        // Use original filename (sanitized)
+        $ext  = strtolower($file->getClientOriginalExtension());
         $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $name = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name);
-        $filename = $name . '.json';
 
-        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
-        file_put_contents($filepath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        // -- Python navigation script --
+        if ($ext === 'py') {
+            $filename = $name . '.py';
+            $file->move($this->jobsDir, $filename);
 
-        return redirect('/')->with('success', "Payload uploaded: {$filename}");
+            return redirect('/')->with('success', "Script uploaded: {$filename}");
+        }
+
+        // -- JSON payload config --
+        if ($ext === 'json' || $ext === 'txt') {
+            $contents = file_get_contents($file->getRealPath());
+            $decoded  = json_decode($contents, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->withErrors(['payload_file' => 'Invalid JSON file.']);
+            }
+
+            if (empty($decoded['target_url'])) {
+                return back()->withErrors(['payload_file' => 'Payload must contain a target_url field.']);
+            }
+
+            $filename = $name . '.json';
+            $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $filename;
+            file_put_contents($filepath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+            return redirect('/')->with('success', "Configuration uploaded: {$filename}");
+        }
+
+        return back()->withErrors(['payload_file' => 'Unsupported file type. Upload a .py script or .json configuration.']);
+    }
+
+    /**
+     * GET /script/{name}/tokens - Detect token names used in a .py script.
+     *
+     * Scans for tokens["key"], tokens['key'], and tokens.get("key" patterns.
+     */
+    public function scriptTokens(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
+
+        if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
+            return response()->json(['tokens' => []], 200);
+        }
+
+        $source = file_get_contents($filepath);
+
+        // Match tokens["key"], tokens['key'], tokens.get("key", tokens.get('key'
+        preg_match_all('/tokens\s*\[\s*["\']([^"\']+)["\']\s*\]/', $source, $m1);
+        preg_match_all('/tokens\s*\.\s*get\s*\(\s*["\']([^"\']+)["\']/', $source, $m2);
+
+        $tokenNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
+
+        return response()->json(['tokens' => $tokenNames]);
     }
 
     /**
