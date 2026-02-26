@@ -69,6 +69,9 @@ class EmulationController extends Controller
             $validated['token_values'] ?? []
         );
 
+        // Also inject target_url into tokens so scripts can use tokens["target_url"]
+        $tokens['target_url'] = $validated['target_url'];
+
         $needsDeveloper = !empty($validated['needs_developer']);
         $scriptMode     = $validated['script_mode'] ?? '';
 
@@ -182,6 +185,22 @@ class EmulationController extends Controller
         $tokenNames = array_values(array_unique(array_merge($m1[1] ?? [], $m2[1] ?? [])));
 
         return response()->json(['tokens' => $tokenNames]);
+    }
+
+    /**
+     * GET /script/{name}/content - Return the source code of a .py script for preview.
+     */
+    public function scriptContent(string $name)
+    {
+        $filepath = $this->jobsDir . DIRECTORY_SEPARATOR . $name;
+
+        if (!file_exists($filepath) || !str_ends_with($name, '.py')) {
+            return response()->json(['content' => '', 'name' => $name], 404);
+        }
+
+        $source = file_get_contents($filepath);
+
+        return response()->json(['content' => $source, 'name' => $name]);
     }
 
     /**
