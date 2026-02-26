@@ -35,7 +35,7 @@ class EmulationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'target_url'        => 'required|url',
+            'target_url'        => 'nullable|url',
             'username'          => 'nullable|string',
             'password'          => 'nullable|string',
             'script_path'       => 'nullable|string',
@@ -70,7 +70,9 @@ class EmulationController extends Controller
         );
 
         // Also inject target_url into tokens so scripts can use tokens["target_url"]
-        $tokens['target_url'] = $validated['target_url'];
+        if (!empty($validated['target_url'])) {
+            $tokens['target_url'] = $validated['target_url'];
+        }
 
         $needsDeveloper = !empty($validated['needs_developer']);
         $scriptMode     = $validated['script_mode'] ?? '';
@@ -147,10 +149,6 @@ class EmulationController extends Controller
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return back()->withErrors(['payload_file' => 'Invalid JSON file.']);
-            }
-
-            if (empty($decoded['target_url'])) {
-                return back()->withErrors(['payload_file' => 'Payload must contain a target_url field.']);
             }
 
             $filename = $name . '.json';
