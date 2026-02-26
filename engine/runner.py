@@ -239,16 +239,33 @@ class EmulationEngine:
         The script must define a function:
             def navigate(context: dict) -> dict
         """
-        spec = importlib.util.spec_from_file_location("nav_script", script_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        # Read with encoding fallback (Windows files may not be UTF-8)
+        source = None
+        for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+            try:
+                with open(script_path, "r", encoding=encoding) as f:
+                    source = f.read()
+                break
+            except (UnicodeDecodeError, ValueError):
+                continue
 
-        if not hasattr(module, "navigate"):
+        if source is None:
+            raise UnicodeDecodeError(
+                "utf-8", b"", 0, 1,
+                f"Cannot decode navigation script: {script_path}"
+            )
+
+        # Compile and execute the script
+        code = compile(source, script_path, "exec")
+        module_dict = {"__name__": "nav_script", "__file__": script_path}
+        exec(code, module_dict)
+
+        if "navigate" not in module_dict:
             raise AttributeError(
                 f"Navigation script '{script_path}' must define a 'navigate(context)' function."
             )
 
-        return module.navigate(context)
+        return module_dict["navigate"](context)
 
     # -- Internal: upload downloads to S3 -------------------------
 
