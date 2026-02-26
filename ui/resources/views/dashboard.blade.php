@@ -31,13 +31,11 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg-primary); color:var(--text-primary); min-height:100vh; }
 
-  /* Top Bar */
   .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 28px; height:56px; background:var(--bg-secondary); border-bottom:1px solid var(--border); }
   .topbar-left { display:flex; align-items:center; gap:12px; }
   .topbar-logo { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#A78BFA); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; }
   .topbar-title { font-size:15px; font-weight:600; }
   .topbar-title span { color:var(--text-muted); font-weight:400; }
-  .topbar-right { display:flex; align-items:center; gap:8px; }
   .gear-btn {
     width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center;
     border-radius:8px; background:transparent; border:1px solid var(--border); color:var(--text-secondary);
@@ -46,19 +44,16 @@
   .gear-btn:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--text-muted); }
   .gear-btn svg { width:18px; height:18px; }
 
-  /* Layout */
   .layout { display:grid; grid-template-columns:1fr 400px; min-height:calc(100vh - 56px); }
   .main-panel { padding:28px 32px; overflow-y:auto; }
   .side-panel { background:var(--bg-secondary); border-left:1px solid var(--border); padding:24px; overflow-y:auto; }
 
-  /* Section */
   .section { margin-bottom:20px; }
   .section-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-  .section-number { width:24px; height:24px; border-radius:50%; background:var(--accent-glow); border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); }
+  .section-number { width:24px; height:24px; border-radius:50%; background:var(--accent-glow); border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--accent); flex-shrink:0; }
   .section-title { font-size:14px; font-weight:600; }
   .section-subtitle { font-size:12px; color:var(--text-muted); margin-left:auto; }
 
-  /* Inputs */
   .field { margin-bottom:10px; }
   .field-label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px; }
   .field-input, .field-select {
@@ -71,7 +66,6 @@
   .field-select { appearance:none; cursor:pointer; }
   .field-select option { background:var(--bg-input); color:var(--text-primary); }
 
-  /* Credential Row */
   .cred-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .password-wrap { position:relative; }
   .password-wrap .field-input { padding-right:100px; }
@@ -81,10 +75,8 @@
     font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px;
   }
 
-  /* Divider */
   .divider { height:1px; background:var(--border); margin:4px 0 16px; }
 
-  /* Button Row */
   .btn-row-3 { display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; }
   .clear-btn {
     padding:13px 18px; font-size:14px; font-weight:600; font-family:inherit;
@@ -113,7 +105,6 @@
   .btn-helper.ready { color:var(--green); }
   .btn-helper.warning { color:var(--amber); }
 
-  /* Script Cards */
   .script-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .script-card {
     background:var(--bg-input); border:1px solid var(--border); border-radius:12px;
@@ -126,7 +117,6 @@
   .script-card-desc { font-size:12px; color:var(--text-muted); line-height:1.5; }
   .script-panel { margin-top:12px; }
 
-  /* PageCast CTA */
   .pagecast-cta {
     display:flex; align-items:center; gap:14px; padding:16px;
     background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);
@@ -143,7 +133,6 @@
   }
   .pagecast-launch-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(108,114,255,0.45); }
 
-  /* Developer Checkbox */
   .developer-check {
     display:flex; align-items:center; gap:10px; margin-top:14px;
     cursor:pointer; font-size:13px; color:var(--text-secondary); user-select:none;
@@ -167,7 +156,7 @@
   .developer-msg-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
   .developer-msg-body strong { color:var(--text-primary); }
 
-  /* Inline upload in Step 1 */
+  /* Upload area — not a form, handled by JS */
   .upload-inline {
     margin-top:12px; display:flex; align-items:center; gap:12px;
     padding:12px 16px; background:var(--bg-input); border:1px dashed var(--border);
@@ -180,16 +169,22 @@
   .upload-inline-btn {
     flex-shrink:0; padding:7px 14px; font-size:12px; font-weight:600; font-family:inherit;
     background:var(--bg-card); border:1px solid var(--border); border-radius:8px;
-    color:var(--text-primary); cursor:pointer; transition:all 0.15s;
+    color:var(--text-primary); cursor:pointer; transition:all 0.15s; z-index:2;
   }
   .upload-inline-btn:hover { border-color:var(--accent); color:var(--accent); }
 
-  /* Alerts */
+  /* "Referenced in script" badge */
+  .script-ref-badge {
+    display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px;
+    font-size:10px; font-weight:600; background:var(--green-bg); border:1px solid var(--green-border);
+    color:var(--green); margin-left:8px; vertical-align:middle; transition:opacity 0.2s;
+  }
+  .script-ref-badge svg { width:12px; height:12px; }
+
   .alert { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:13px; }
   .alert-success { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
   .alert-error { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
 
-  /* Side Panel */
   .side-title { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
   .side-divider { height:1px; background:var(--border); margin:16px 0; }
 
@@ -229,7 +224,6 @@
   }
   .script-preview-empty-icon { font-size:28px; margin-bottom:8px; opacity:0.5; }
 
-  /* Payload / Saved Jobs */
   .payload-item {
     display:flex; align-items:center; gap:8px; padding:10px 12px;
     background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
@@ -249,7 +243,6 @@
   .payload-actions button.run-btn-sm:hover { border-color:var(--green); color:var(--green); }
   .empty-state { color:var(--text-muted); font-size:13px; padding:20px 0; text-align:center; }
 
-  /* Token Table */
   .token-table { width:100%; border-collapse:separate; border-spacing:0; }
   .token-table th {
     text-align:left; font-size:11px; font-weight:600; color:var(--text-muted);
@@ -278,16 +271,12 @@
     background:var(--green-bg); border:1px solid var(--green-border); border-radius:var(--radius);
     font-size:12px; color:var(--green); line-height:1.5;
   }
-  .token-url-row {
-    display:flex; align-items:center; gap:8px; margin-bottom:14px;
-  }
   .token-url-label {
     font-size:11px; font-weight:600; color:var(--accent); text-transform:uppercase;
     letter-spacing:0.5px; display:flex; align-items:center; gap:6px; margin-bottom:6px;
   }
   .token-url-label .req { color:var(--red); font-weight:700; }
 
-  /* Job Log */
   .log-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
   .dot-green { background:var(--green); box-shadow:0 0 6px var(--green); }
   .dot-red { background:var(--red); box-shadow:0 0 6px var(--red); }
@@ -309,7 +298,6 @@
   .log-status-ok { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
   .log-status-fail { background:var(--red-bg); border:1px solid rgba(248,113,113,0.3); color:var(--red); }
 
-  /* Modal Overlay */
   .modal-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
     z-index:100; align-items:center; justify-content:center;
@@ -332,7 +320,6 @@
     color:#fff; cursor:pointer; transition:all 0.15s; margin-top:16px;
   }
   .modal-btn:hover { background:#8186FF; }
-
   .uv-install-help { margin-top:8px; }
   .install-steps {
     margin-top:8px; padding:12px; background:var(--bg-primary);
@@ -354,7 +341,6 @@
 </head>
 <body>
 
-<!-- Top Bar -->
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-logo">E</div>
@@ -362,16 +348,12 @@
   </div>
   <div class="topbar-right">
     <button class="gear-btn" title="Settings" onclick="document.getElementById('settingsModal').classList.add('active')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 </div>
 
 <div class="layout">
-  <!-- MAIN PANEL -->
   <div class="main-panel">
 
     @if(session('success'))
@@ -386,7 +368,7 @@
     <form method="POST" action="{{ route('payload.store') }}" id="payloadForm">
       @csrf
 
-      <!-- Step 1: Navigation Script -->
+      {{-- ── Step 1: Navigation Script ── --}}
       <div class="section">
         <div class="section-header">
           <div class="section-number">1</div>
@@ -407,7 +389,6 @@
           </div>
         </div>
 
-        <!-- PageCast panel -->
         <div class="script-panel" id="panelPagecast" style="display:none">
           <div class="pagecast-cta">
             <div class="pagecast-cta-icon">&#x23FA;</div>
@@ -422,7 +403,6 @@
           </div>
         </div>
 
-        <!-- Existing script panel -->
         <div class="script-panel" id="panelExisting" style="display:none">
           <div class="field" style="margin-top:0">
             <select class="field-select" name="script_path" id="scriptSelect">
@@ -437,23 +417,18 @@
           @endif
         </div>
 
-        <!-- Inline .py / .json upload -->
-        <form method="POST" action="{{ route('payload.upload') }}" enctype="multipart/form-data" id="inlineUploadForm">
-          @csrf
-          <label class="upload-inline" for="inlineFileInput">
-            <input type="file" name="payload_file" accept=".py,.json" id="inlineFileInput"
-                   style="position:absolute;inset:0;opacity:0;cursor:pointer"
-                   onchange="handleInlineUpload(this)">
-            <div class="upload-inline-icon">&#x2B06;&#xFE0F;</div>
-            <div class="upload-inline-text" id="inlineUploadText">
-              Or <strong>upload a .py script</strong> or <strong>.json config</strong>
-            </div>
-            <button type="submit" class="upload-inline-btn" id="inlineUploadBtn" style="display:none"
-                    onclick="event.stopPropagation()">Upload</button>
-          </label>
-        </form>
+        {{-- Upload via JS (NOT a nested form) --}}
+        <div class="upload-inline" id="uploadInlineArea" onclick="document.getElementById('hiddenFileInput').click()">
+          <div class="upload-inline-icon">&#x2B06;&#xFE0F;</div>
+          <div class="upload-inline-text" id="inlineUploadText">
+            Or <strong>upload a .py script</strong> or <strong>.json config</strong>
+          </div>
+          <button type="button" class="upload-inline-btn" id="inlineUploadBtn" style="display:none"
+                  onclick="event.stopPropagation(); doInlineUpload();">Upload</button>
+        </div>
+        <input type="file" id="hiddenFileInput" accept=".py,.json" style="display:none"
+               onchange="handleInlineFileSelect(this)">
 
-        <!-- Developer handoff -->
         <label class="developer-check">
           <input type="checkbox" name="needs_developer" id="devCheck" value="1" {{ old('needs_developer') ? 'checked' : '' }}>
           <span class="developer-check-box"></span>
@@ -472,7 +447,7 @@
 
       <div class="divider"></div>
 
-      <!-- Step 2: Job Name -->
+      {{-- ── Step 2: Job Name ── --}}
       <div class="section">
         <div class="section-header">
           <div class="section-number">2</div>
@@ -486,12 +461,18 @@
         </div>
       </div>
 
-      <!-- Step 3: Credentials -->
-      <div class="section">
+      {{-- ── Step 3: Credentials ── --}}
+      <div class="section" id="credentialsSection">
         <div class="section-header">
           <div class="section-number">3</div>
           <div class="section-title">Credentials</div>
-          <div class="section-subtitle">Auto-encrypted on save</div>
+          <div class="section-subtitle">
+            Auto-encrypted on save
+            <span class="script-ref-badge" id="credsBadge" style="display:none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Used by script
+            </span>
+          </div>
         </div>
         <div class="cred-row">
           <div class="field">
@@ -511,7 +492,7 @@
 
       <div class="divider"></div>
 
-      <!-- Step 4: Script Configuration -->
+      {{-- ── Step 4: Script Configuration ── --}}
       <div class="section">
         <div class="section-header">
           <div class="section-number">4</div>
@@ -520,19 +501,24 @@
         </div>
 
         <div class="token-hint" id="tokenHint" style="display:none">
-          &#x2728; Token names were auto-detected from the selected script. Fill in the values below.
+          &#x2728; <span id="tokenHintText">Token names were auto-detected from the selected script. Fill in the values below.</span>
         </div>
 
-        <!-- Target URL (mandatory, always first) -->
-        <div class="token-url-label">&#x1F310; Target URL <span class="req">*</span></div>
+        {{-- Target URL --}}
+        <div class="token-url-label">
+          &#x1F310; Target URL <span class="req">*</span>
+          <span class="script-ref-badge" id="urlBadge" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Used by script
+          </span>
+        </div>
         <div class="field" style="margin-bottom:16px">
           <input class="field-input" type="url" name="target_url" id="targetUrlInput"
                  value="{{ old('target_url') }}"
-                 placeholder="https://portal.example.com/login" required
-                 style="border-color:var(--accent);background:rgba(108,114,255,0.06)">
+                 placeholder="https://portal.example.com/login" required>
         </div>
 
-        <!-- Additional tokens -->
+        {{-- Additional tokens --}}
         <table class="token-table" id="tokenTable">
           <thead><tr><th style="width:40%">TOKEN NAME</th><th>VALUE</th></tr></thead>
           <tbody>
@@ -547,7 +533,7 @@
 
       <div class="divider"></div>
 
-      <!-- Step 5: S3 Output -->
+      {{-- ── Step 5: S3 Output ── --}}
       <div class="section">
         <div class="section-header">
           <div class="section-number">5</div>
@@ -570,7 +556,7 @@
 
       <div class="divider"></div>
 
-      <!-- Actions -->
+      {{-- ── Actions ── --}}
       <div class="section">
         <div class="btn-row-3">
           <button type="button" class="clear-btn" onclick="clearForm()">
@@ -596,10 +582,9 @@
     </form>
   </div>
 
-  <!-- SIDE PANEL -->
+  {{-- ═══ SIDE PANEL ═══ --}}
   <div class="side-panel">
 
-    <!-- Script Preview -->
     <div class="side-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12l-2 2 2 2"/><path d="M14 12l2 2-2 2"/></svg>
       Script Preview
@@ -623,7 +608,6 @@
 
     <div class="side-divider"></div>
 
-    <!-- Saved Jobs -->
     <div class="side-title">Saved Jobs</div>
     @forelse($payloads as $payload)
       <div class="payload-item">
@@ -649,7 +633,6 @@
 
     <div class="side-divider"></div>
 
-    <!-- Job Log -->
     <div class="side-title">
       @if(session('job_log'))
         <span class="log-dot {{ session('job_success') ? 'dot-green' : 'dot-red' }}"></span>
@@ -675,18 +658,14 @@
     @else
       <div class="empty-state">Run a job to see the log here.</div>
     @endif
-
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
+{{-- ═══ SETTINGS MODAL ═══ --}}
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
       Settings
       <button class="modal-close" onclick="document.getElementById('settingsModal').classList.remove('active')">&times;</button>
     </div>
@@ -733,7 +712,6 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
 <script>
   document.getElementById('settingsModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
@@ -744,34 +722,41 @@
     if (!confirm('Clear all fields?')) return;
     var form = document.getElementById('payloadForm');
     if (!form) return;
-
     form.querySelectorAll('input[type="text"], input[type="url"], input[type="password"]').forEach(function(inp) {
       if (inp.name === 'payload_name') inp.value = 'my_job';
       else inp.value = '';
     });
-
     var sel = document.getElementById('scriptSelect');
     if (sel) sel.value = '';
-
     currentMode = '';
     document.getElementById('scriptModeInput').value = '';
     document.getElementById('cardPagecast').classList.remove('active');
     document.getElementById('cardExisting').classList.remove('active');
     document.getElementById('panelPagecast').style.display = 'none';
     document.getElementById('panelExisting').style.display = 'none';
-
     document.getElementById('devCheck').checked = false;
     document.getElementById('devMsg').style.display = 'none';
+    resetTokenTable();
+    hideScriptCues();
+    showEmptyPreview();
+    checkRunReady();
+  }
 
+  function resetTokenTable() {
     var tbody = document.querySelector('#tokenTable tbody');
     tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
       + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
     refreshTokenBorders();
-
     document.getElementById('tokenHint').style.display = 'none';
     document.getElementById('tokenSubtitle').textContent = 'Values your script needs to run';
-    showEmptyPreview();
-    checkRunReady();
+  }
+
+  function hideScriptCues() {
+    document.getElementById('urlBadge').style.display = 'none';
+    document.getElementById('credsBadge').style.display = 'none';
+    var urlInput = document.getElementById('targetUrlInput');
+    urlInput.style.borderColor = '';
+    urlInput.style.background = '';
   }
 
   // ── Token table ─────────────────────────────────────
@@ -780,33 +765,53 @@
     var row = document.createElement('tr');
     var kn = keyName || '';
     var vp = valuePlaceholder || 'value';
-    var readonlyAttr = kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '';
-    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + readonlyAttr + '></td>'
+    var ro = kn ? ' readonly style="color:var(--green);background:var(--green-bg)"' : '';
+    row.innerHTML = '<td><input class="field-input" name="token_keys[]" placeholder="key_name" value="' + kn + '"' + ro + '></td>'
       + '<td><input class="field-input" name="token_values[]" placeholder="' + vp + '"></td>';
     tbody.appendChild(row);
     refreshTokenBorders();
     if (!kn) row.querySelector('input').focus();
   }
 
-  function setTokensFromScript(tokenNames) {
+  function setTokensFromScript(tokenNames, usesUrl, usesCreds) {
     var tbody = document.querySelector('#tokenTable tbody');
     var hint  = document.getElementById('tokenHint');
+    var hintT = document.getElementById('tokenHintText');
     var sub   = document.getElementById('tokenSubtitle');
     var badge = document.getElementById('scriptPreviewBadge');
+    var urlBadge  = document.getElementById('urlBadge');
+    var credBadge = document.getElementById('credsBadge');
+    var urlInput  = document.getElementById('targetUrlInput');
 
+    // -- URL badge --
+    if (usesUrl) {
+      urlBadge.style.display = 'inline-flex';
+      urlInput.style.borderColor = 'var(--green)';
+      urlInput.style.background = 'var(--green-bg)';
+    } else {
+      urlBadge.style.display = 'none';
+      urlInput.style.borderColor = '';
+      urlInput.style.background = '';
+    }
+
+    // -- Credentials badge --
+    credBadge.style.display = usesCreds ? 'inline-flex' : 'none';
+
+    // -- Tokens --
     if (!tokenNames || tokenNames.length === 0) {
-      hint.style.display = 'none';
-      sub.textContent = 'Values your script needs to run';
-      if (badge) badge.style.display = 'none';
+      if (!usesUrl && !usesCreds) {
+        hint.style.display = 'none';
+        sub.textContent = 'Values your script needs to run';
+        if (badge) badge.style.display = 'none';
+      }
       tbody.innerHTML = '<tr><td><input class="field-input" name="token_keys[]" placeholder="key_name"></td>'
         + '<td><input class="field-input" name="token_values[]" placeholder="value"></td></tr>';
       refreshTokenBorders();
       return;
     }
 
-    // Filter out target_url — it has its own dedicated field
+    // Filter target_url from token table (it has its own field)
     var filtered = tokenNames.filter(function(n) { return n !== 'target_url'; });
-    var totalDetected = tokenNames.length;
 
     tbody.innerHTML = '';
     if (filtered.length === 0) {
@@ -822,11 +827,18 @@
     }
     refreshTokenBorders();
 
+    // Build detection summary
+    var parts = [];
+    if (usesUrl) parts.push('target URL');
+    if (usesCreds) parts.push('credentials');
+    if (filtered.length > 0) parts.push(filtered.length + ' token' + (filtered.length > 1 ? 's' : ''));
+
     hint.style.display = 'block';
-    sub.textContent = totalDetected + ' token' + (totalDetected > 1 ? 's' : '') + ' detected from script';
+    hintT.textContent = 'Auto-detected from script: ' + parts.join(', ') + '. Fill in the values below.';
+    sub.textContent = parts.join(' + ') + ' detected';
 
     if (badge) {
-      badge.textContent = totalDetected + ' token' + (totalDetected > 1 ? 's' : '');
+      badge.textContent = parts.join(' + ');
       badge.style.display = 'inline-block';
     }
   }
@@ -866,7 +878,11 @@
     document.getElementById('cardExisting').classList.toggle('active', mode === 'existing');
     document.getElementById('panelPagecast').style.display = mode === 'pagecast' ? 'block' : 'none';
     document.getElementById('panelExisting').style.display = mode === 'existing' ? 'block' : 'none';
-    if (mode !== 'existing') showEmptyPreview();
+    if (mode !== 'existing') {
+      showEmptyPreview();
+      hideScriptCues();
+      resetTokenTable();
+    }
     checkRunReady();
   }
 
@@ -875,32 +891,30 @@
     document.getElementById('scriptPreviewHeader').style.display = 'none';
     document.getElementById('scriptPreviewBadge').style.display = 'none';
     document.getElementById('scriptPreviewBody').innerHTML =
-      '<div class="script-preview-empty">'
-      + '<div class="script-preview-empty-icon">&#x1F4C4;</div>'
-      + 'Select a navigation script in Step 1<br>to see a preview here'
-      + '</div>';
+      '<div class="script-preview-empty"><div class="script-preview-empty-icon">&#x1F4C4;</div>'
+      + 'Select a navigation script in Step 1<br>to see a preview here</div>';
   }
 
   function highlightScript(source) {
-    // Escape HTML
     var h = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-    // Comments first (so they aren't re-highlighted)
+    // Comments
     h = h.replace(/(^|\n)([ \t]*#[^\n]*)/g, '$1<span class="tok-cm">$2</span>');
 
-    // String literals (triple-quoted first, then single)
+    // Triple-quoted strings
     h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g, '<span class="tok-str">$1</span>');
+    // Single-line strings
     h = h.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>');
 
-    // Token references: tokens["key"], tokens.get("key"), context["key"]
-    h = h.replace(/(tokens\s*\[\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|')\s*\])/g, '<span class="tok-ref">$1</span>');
-    h = h.replace(/(tokens\s*\.\s*get\s*\(\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|'))/g, '<span class="tok-ref">$1</span>');
-    h = h.replace(/(context\s*\[\s*(?:"|&quot;|')([^"'&]+)(?:"|&quot;|')\s*\])/g, '<span class="tok-ref">$1</span>');
+    // Token and context references
+    h = h.replace(/(tokens\s*\[\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;)\s*\])/g, '<span class="tok-ref">$1</span>');
+    h = h.replace(/(tokens\s*\.\s*get\s*\(\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;))/g, '<span class="tok-ref">$1</span>');
+    h = h.replace(/(context\s*\[\s*(?:"|'|&quot;)([^"'&]+)(?:"|'|&quot;)\s*\])/g, '<span class="tok-ref">$1</span>');
 
-    // Python keywords
-    var kws = ['def ','import ','from ','return ','if ','else:','elif ','for ','in ','while ',
-               'try:','except ','finally:','class ','with ','as ','pass','raise ','True','False','None'];
-    kws.forEach(function(kw) {
+    // Keywords
+    ['def ','import ','from ','return ','if ','else:','elif ','for ','in ','while ',
+     'try:','except ','finally:','class ','with ','as ','pass','raise ','True','False','None'
+    ].forEach(function(kw) {
       var re = new RegExp('(?<![a-zA-Z_])(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![a-zA-Z_])', 'g');
       h = h.replace(re, '<span class="tok-kw">$1</span>');
     });
@@ -910,7 +924,6 @@
 
   function fetchScriptContent(scriptName) {
     if (!scriptName) { showEmptyPreview(); return; }
-
     fetch('/script/' + encodeURIComponent(scriptName) + '/content')
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -924,16 +937,27 @@
       .catch(function() { showEmptyPreview(); });
   }
 
-  function fetchScriptTokens(scriptName) {
-    if (!scriptName) return;
+  // ── Script analysis (tokens + cues) ─────────────────
+  function analyseScript(scriptName) {
+    if (!scriptName) {
+      hideScriptCues();
+      resetTokenTable();
+      return;
+    }
     fetch('/script/' + encodeURIComponent(scriptName) + '/tokens')
       .then(function(r) { return r.json(); })
-      .then(function(data) { if (data.tokens) setTokensFromScript(data.tokens); })
+      .then(function(data) {
+        setTokensFromScript(
+          data.tokens || [],
+          data.uses_target_url || false,
+          data.uses_credentials || false
+        );
+      })
       .catch(function() {});
   }
 
-  // ── Inline upload handler ───────────────────────────
-  function handleInlineUpload(input) {
+  // ── Inline upload (via JS fetch, NOT a nested form) ──
+  function handleInlineFileSelect(input) {
     var name = input.files[0] ? input.files[0].name : '';
     var textEl = document.getElementById('inlineUploadText');
     var btnEl  = document.getElementById('inlineUploadBtn');
@@ -944,6 +968,30 @@
       textEl.innerHTML = 'Or <strong>upload a .py script</strong> or <strong>.json config</strong>';
       btnEl.style.display = 'none';
     }
+  }
+
+  function doInlineUpload() {
+    var input = document.getElementById('hiddenFileInput');
+    if (!input.files[0]) return;
+
+    var formData = new FormData();
+    formData.append('payload_file', input.files[0]);
+    formData.append('_token', document.querySelector('#payloadForm input[name="_token"]').value);
+
+    var textEl = document.getElementById('inlineUploadText');
+    textEl.innerHTML = '<strong>Uploading...</strong>';
+
+    fetch('{{ route("payload.upload") }}', { method: 'POST', body: formData })
+      .then(function(r) {
+        if (r.redirected) {
+          window.location.href = r.url;
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(function() {
+        textEl.innerHTML = '<strong style="color:var(--red)">Upload failed. Try again.</strong>';
+      });
   }
 
   // ── Developer checkbox ──────────────────────────────
@@ -982,7 +1030,6 @@
       saveH.className = 'btn-helper';
       return;
     }
-
     var missing = [];
     if (!nameVal) missing.push('Job Name');
     if (!urlVal)  missing.push('Target URL');
@@ -1006,7 +1053,6 @@
   (function() {
     var form = document.getElementById('payloadForm');
     if (!form) return;
-
     form.querySelector('[name="payload_name"]').addEventListener('input', checkRunReady);
     document.getElementById('targetUrlInput').addEventListener('input', checkRunReady);
 
@@ -1014,11 +1060,10 @@
     if (scriptSel) {
       scriptSel.addEventListener('change', function() {
         checkRunReady();
-        fetchScriptTokens(this.value);
+        analyseScript(this.value);
         fetchScriptContent(this.value);
       });
     }
-
     checkRunReady();
   })();
 </script>
