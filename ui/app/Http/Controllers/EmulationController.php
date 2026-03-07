@@ -288,6 +288,83 @@ class EmulationController extends Controller
     }
 
     /**
+     * Upload a new navigation script
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'payload_file' => 'required|file|mimes:py|max:10240', // Max 10MB
+        ]);
+
+        $file = $request->file('payload_file');
+        $filename = $file->getClientOriginalName();
+
+        // Read file content for validation
+        $content = file_get_contents($file->getRealPath());
+
+        // Validation checks
+        $errors = $this->validateNavigationScript($content, $filename);
+
+        if (!empty($errors)) {
+            return back()->withErrors(['upload' => implode(' ', $errors)]);
+        }
+
+        // Save to scripts/ directory
+        try {
+            Storage::disk('local')->put("scripts/{$filename}", $content);
+
+            return redirect()->route('payload.index')
+                ->with('success', "Script '{$filename}' uploaded successfully and is now available in the dropdown");
+        } catch (\Exception $e) {
+            return back()->withErrors(['upload' => 'Upload failed: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Validate uploaded navigation script
+     */
+    private function validateNavigationScript($content, $filename)
+    {
+        $errors = [];
+
+        // Check 1: Must have CONFIG dictionary
+        if (!preg_match('/CONFIG\s*=\s*\{/', $content)) {
+            $errors[] = "Invalid script: Missing CONFIG dictionary.";
+        }
+
+        // Check 2: Must have navigate() function
+        if (!preg_match('/def\s+navigate\s*\([^)]*\)\s*->\s*dict:/', $content)) {
+            $errors[] = "Invalid script: Missing navigate(context: dict) -> dict function.";
+        }
+
+        // Check 3: Should not have NotImplementedError (indicates template, not working script)
+        if (preg_match('/raise\s+NotImplementedError/', $content)) {
+            $errors[] = "This appears to be a template or placeholder, not a working script. " .
+                       "Please implement the navigation logic before uploading. " .
+                       "Working scripts should not raise NotImplementedError.";
+        }
+
+        // Check 4: Should have status = "READY" in CONFIG
+        if (preg_match('/"status"\s*:\s*"AWAITING_DEVELOPER"/', $content)) {
+            $errors[] = "Script status is AWAITING_DEVELOPER. " .
+                       "Please implement the navigation logic and change status to 'READY' before uploading.";
+        }
+
+        // Check 5: Filename should end with .py
+        if (!str_ends_with($filename, '.py')) {
+            $errors[] = "Script filename must end with .py";
+        }
+
+        // Check 6: Should not be a job file (those go in jobs/, not scripts/)
+        if (preg_match('/USER JOB:|Based on:/', $content)) {
+            $errors[] = "This appears to be a user job file, not a base script. " .
+                       "Job files are created by the dashboard and should not be uploaded manually.";
+        }
+
+        return $errors;
+    }
+
+    /**
      * Get list of base scripts
      */
     private function getBaseScripts()
