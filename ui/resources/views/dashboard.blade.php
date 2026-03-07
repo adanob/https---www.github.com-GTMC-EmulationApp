@@ -294,6 +294,15 @@
   }
   .upload-inline-btn:hover { background:#006a9e; }
 
+  .empty-state-upload {
+    padding:24px; background:var(--bg-card); border:2px dashed var(--border);
+    border-radius:var(--radius); cursor:pointer; transition:all 0.2s;
+  }
+  .empty-state-upload:hover {
+    border-color:var(--accent); background:var(--accent-glow);
+    transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,119,182,0.15);
+  }
+
   @media (max-width:1200px) {
     .layout { grid-template-columns:1fr; }
     .side-panel { border-left:none; border-top:1px solid var(--border); }
@@ -379,63 +388,139 @@
         </div>
 
         <div class="script-panel" id="panelExisting">
-          <div class="field">
-            <label class="field-label">Select Base Script</label>
-            <select id="scriptSelect" name="navigation_script" class="field-select">
-              <option value="">-- Choose a pre-built script --</option>
-              @foreach($scripts as $script)
-                <option value="{{ $script }}" {{ old('navigation_script') == $script ? 'selected' : '' }}>
-                  {{ $script }}
-                </option>
-              @endforeach
-            </select>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-              💡 Your job will <strong>import</strong> this script and run it with your configuration
+          <!-- Show this when scripts are available -->
+          <div id="scriptSelectionArea" style="display:{{ count($scripts) > 0 ? 'block' : 'none' }}">
+            <div class="field">
+              <label class="field-label">Select Base Script</label>
+              <select id="scriptSelect" name="navigation_script" class="field-select">
+                <option value="">-- Choose a pre-built script --</option>
+                @foreach($scripts as $script)
+                  <option value="{{ $script }}" {{ old('navigation_script') == $script ? 'selected' : '' }}>
+                    {{ $script }}
+                  </option>
+                @endforeach
+              </select>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                💡 Your job will <strong>import</strong> this script and run it with your configuration
+              </div>
+            </div>
+
+            <div id="scriptCues" style="display:none; margin-top:14px;">
+              <div id="cueTargetUrl" class="script-cue info" style="display:none;">
+                <div class="script-cue-icon">🌐</div>
+                <div class="script-cue-body"><strong>Target URL detected:</strong> <span id="cueTargetUrlValue"></span></div>
+              </div>
+              <div id="cueCreds" class="script-cue check" style="display:none;">
+                <div class="script-cue-icon">✓</div>
+                <div class="script-cue-body"><strong>Credentials found</strong> for this portal</div>
+              </div>
+            </div>
+
+            <div id="tokenTableWrap" class="token-table-wrap" style="display:none; margin-top:14px;">
+              <table class="token-table">
+                <thead>
+                  <tr>
+                    <th style="width:35%">Token</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody id="tokenTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Upload option when scripts exist -->
+            <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+              <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px; font-weight:500;">
+                Don't see your script?
+              </div>
+              <div class="upload-inline" onclick="document.getElementById('hiddenFileInput').click()">
+                <input type="file" id="hiddenFileInput" accept=".py" onchange="handleInlineFileSelect(this)">
+                <div id="inlineUploadText">Click to <strong>upload a .py script</strong> to add it to the library</div>
+                <button type="button" id="inlineUploadBtn" class="upload-inline-btn" onclick="event.stopPropagation(); doInlineUpload()">Upload Now</button>
+              </div>
             </div>
           </div>
 
-          <div id="scriptCues" style="display:none; margin-top:14px;">
-            <div id="cueTargetUrl" class="script-cue info" style="display:none;">
-              <div class="script-cue-icon">🌐</div>
-              <div class="script-cue-body"><strong>Target URL detected:</strong> <span id="cueTargetUrlValue"></span></div>
-            </div>
-            <div id="cueCreds" class="script-cue check" style="display:none;">
-              <div class="script-cue-icon">✓</div>
-              <div class="script-cue-body"><strong>Credentials found</strong> for this portal</div>
-            </div>
-          </div>
+          <!-- Show this when NO scripts are available -->
+          <div id="noScriptsArea" style="display:{{ count($scripts) == 0 ? 'block' : 'none' }}">
+            <div style="background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px; text-align:center;">
+              <div style="font-size:32px; margin-bottom:12px;">📂</div>
+              <div style="font-size:15px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+                No Scripts Available Yet
+              </div>
+              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5;">
+                To use an existing script, you'll need to upload one first.<br>
+                Upload a .py navigation script to get started.
+              </div>
 
-          <div id="tokenTableWrap" class="token-table-wrap" style="display:none; margin-top:14px;">
-            <table class="token-table">
-              <thead>
-                <tr>
-                  <th style="width:35%">Token</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody id="tokenTableBody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+              <div class="upload-inline" onclick="document.getElementById('hiddenFileInputEmpty').click()" style="margin:0 auto; max-width:400px; cursor:pointer;">
+                <input type="file" id="hiddenFileInputEmpty" accept=".py" onchange="handleEmptyStateUpload(this)">
+                <div style="font-size:14px; font-weight:600; color:var(--accent); margin-bottom:8px;">
+                  📤 Click here to upload your first script
+                </div>
+                <div style="font-size:12px; color:var(--text-muted);">
+                  Accepts .py files only
+                </div>
+              </div>
+            </div>
 
-          <div class="upload-inline" onclick="document.getElementById('hiddenFileInput').click()">
-            <input type="file" id="hiddenFileInput" accept=".py,.json" onchange="handleInlineFileSelect(this)">
-            <div id="inlineUploadText">Or <strong>upload a .py script</strong> to add it to the library</div>
-            <button type="button" id="inlineUploadBtn" class="upload-inline-btn" onclick="event.stopPropagation(); doInlineUpload()">Upload Now</button>
+            <div style="margin-top:16px; padding:16px; background:var(--bg-input); border-radius:var(--radius);">
+              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+                💡 What is a navigation script?
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+                A navigation script is a Python file that tells the automation how to navigate a specific website or portal.
+                Once uploaded, you can reuse it multiple times with different dates, credentials, or other parameters.
+              </div>
+            </div>
+
+            <div style="margin-top:16px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
+              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+                🚀 Alternative: Create a Config for Your Developer
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                Don't have a script yet? You can create a configuration file with your requirements,
+                then hand it off to a developer who will build the navigation script for you.
+              </div>
+              <button type="button" onclick="switchToDevMode()" style="padding:8px 16px; font-size:13px; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer;">
+                Switch to Developer Handoff Mode →
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="script-panel" id="panelPageCast" style="display:none;">
-          <div class="pagecast-cta">
-            <div class="pagecast-cta-icon">🎬</div>
-            <div class="pagecast-cta-body">
-              <div class="pagecast-cta-title">Record your navigation</div>
-              <div class="pagecast-cta-desc">Opens a browser window where you navigate the site. Your actions are recorded and converted into a reusable script.</div>
+          <div style="background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius); padding:20px;">
+            <div style="text-align:center; margin-bottom:20px;">
+              <div style="font-size:48px; margin-bottom:12px;">🎬</div>
+              <div style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+                Record Your Navigation
+              </div>
+              <div style="font-size:13px; color:var(--text-muted); line-height:1.6; max-width:500px; margin:0 auto;">
+                Launch a browser window and navigate through the portal just like you normally would.
+                Your clicks, typing, and navigation will be automatically recorded and converted into a reusable Python script.
+              </div>
             </div>
-            <button type="button" class="pagecast-launch-btn" onclick="alert('PageCast recording will launch here')">
-              <span>🎥</span> Launch PageCast
+
+            <button type="button" class="pagecast-launch-btn" style="margin:0 auto; display:flex;" onclick="alert('PageCast recording will launch here')">
+              <span>🎥</span> Launch PageCast Recorder
             </button>
+
+            <div style="margin-top:20px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px;">
+              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+                📝 How it works:
+              </div>
+              <ol style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                <li>Click "Launch PageCast Recorder"</li>
+                <li>A browser window opens with recording active</li>
+                <li>Navigate the portal as you normally would</li>
+                <li>Click "Stop Recording" when done</li>
+                <li>Your navigation is saved as a .py script</li>
+                <li>Script appears in the dropdown above for future use</li>
+              </ol>
+            </div>
           </div>
         </div>
       </div>
@@ -771,9 +856,51 @@
       textEl.innerHTML = '<strong>' + name + '</strong> selected';
       btnEl.style.display = 'inline-block';
     } else {
-      textEl.innerHTML = 'Or <strong>upload a .py script</strong> or <strong>.json config</strong>';
+      textEl.innerHTML = 'Click to <strong>upload a .py script</strong> to add it to the library';
       btnEl.style.display = 'none';
     }
+  }
+
+  function handleEmptyStateUpload(input) {
+    if (!input.files[0]) return;
+
+    // Immediately show uploading state
+    var noScriptsArea = document.getElementById('noScriptsArea');
+    noScriptsArea.innerHTML = '<div style="text-align:center; padding:40px;">' +
+      '<div style="font-size:32px; margin-bottom:12px;">📤</div>' +
+      '<div style="font-size:15px; font-weight:600; color:var(--accent);">Uploading script...</div>' +
+      '<div style="font-size:13px; color:var(--text-muted); margin-top:8px;">Please wait</div>' +
+      '</div>';
+
+    var formData = new FormData();
+    formData.append('payload_file', input.files[0]);
+    formData.append('_token', document.querySelector('#payloadForm input[name="_token"]').value);
+
+    fetch('{{ route("payload.upload") }}', { method: 'POST', body: formData })
+      .then(function(r) {
+        if (r.redirected) {
+          window.location.href = r.url;
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(function(err) {
+        noScriptsArea.innerHTML = '<div style="text-align:center; padding:40px; background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--radius);">' +
+          '<div style="font-size:32px; margin-bottom:12px;">❌</div>' +
+          '<div style="font-size:15px; font-weight:600; color:var(--red);">Upload failed</div>' +
+          '<div style="font-size:13px; color:var(--text-muted); margin-top:8px;">Please try again</div>' +
+          '</div>';
+        console.error('Upload error:', err);
+      });
+  }
+
+  function switchToDevMode() {
+    // Check the developer checkbox
+    document.getElementById('devCheck').checked = true;
+    // Trigger the change event to update UI
+    document.getElementById('devCheck').dispatchEvent(new Event('change'));
+    // Scroll to the developer section
+    document.getElementById('devCheck').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function doInlineUpload() {
