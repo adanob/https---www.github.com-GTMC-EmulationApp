@@ -101,9 +101,9 @@ class EmulationController extends Controller
 
         $template = file_get_contents($templatePath);
 
-        // Format tokens and credentials
-        $tokensFormatted = $this->formatPythonDict($tokens);
-        $credentialsFormatted = $this->formatPythonDict($credentials);
+        // Format tokens and credentials as Python dicts
+        $tokensDict = $this->formatPythonDictComplete($tokens);
+        $credentialsDict = $this->formatPythonDictComplete($credentials);
 
         // Replace placeholders
         $content = strtr($template, [
@@ -112,9 +112,22 @@ class EmulationController extends Controller
             '{target_url}' => $targetUrl,
             '{base_script}' => $baseScript,
             '{base_script_module}' => $baseScriptModule,
-            '{tokens_dict}' => $tokensFormatted,
-            '{credentials_dict}' => $credentialsFormatted,
         ]);
+
+        // Now update the empty dicts with actual values
+        $content = preg_replace(
+            '/"tokens":\s*\{\}/',
+            '"tokens": ' . $tokensDict,
+            $content,
+            1
+        );
+
+        $content = preg_replace(
+            '/"credentials":\s*\{\}/',
+            '"credentials": ' . $credentialsDict,
+            $content,
+            1
+        );
 
         return $content;
     }
@@ -133,10 +146,10 @@ class EmulationController extends Controller
 
         $template = file_get_contents($templatePath);
 
-        // Format tokens and credentials
+        // Format tokens and credentials as Python dicts
         $tokenList = empty($tokens) ? 'none specified' : implode(', ', array_keys($tokens));
-        $tokensFormatted = $this->formatPythonDict($tokens);
-        $credentialsFormatted = $this->formatPythonDict($credentials);
+        $tokensDict = $this->formatPythonDictComplete($tokens);
+        $credentialsDict = $this->formatPythonDictComplete($credentials);
 
         // Replace placeholders
         $content = strtr($template, [
@@ -144,11 +157,42 @@ class EmulationController extends Controller
             '{job_date}' => $jobDate,
             '{target_url}' => $targetUrl,
             '{token_list}' => $tokenList,
-            '{tokens_dict}' => $tokensFormatted,
-            '{credentials_dict}' => $credentialsFormatted,
         ]);
 
+        // Now update the empty dicts with actual values
+        $content = preg_replace(
+            '/"tokens":\s*\{\}/',
+            '"tokens": ' . $tokensDict,
+            $content,
+            1
+        );
+
+        $content = preg_replace(
+            '/"credentials":\s*\{\}/',
+            '"credentials": ' . $credentialsDict,
+            $content,
+            1
+        );
+
         return $content;
+    }
+
+    /**
+     * Format PHP array as complete Python dictionary (including braces)
+     */
+    private function formatPythonDictComplete($array)
+    {
+        if (!is_array($array) || empty($array)) {
+            return '{}';
+        }
+
+        $pairs = [];
+        foreach ($array as $key => $value) {
+            $escapedValue = addslashes($value);
+            $pairs[] = "\n        \"{$key}\": \"{$escapedValue}\"";
+        }
+
+        return '{' . implode(',', $pairs) . "\n    }";
     }
 
     /**
