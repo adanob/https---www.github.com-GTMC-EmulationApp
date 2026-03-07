@@ -54,6 +54,8 @@ def navigate(context: dict) -> dict:
 
     Example implementation:
 
+    """
+
     helper = context["helper"]
     tokens = context["tokens"]
     creds = context["credentials"]
@@ -89,7 +91,7 @@ def navigate(context: dict) -> dict:
     logger.info("Screenshot captured", screenshot)
 
     return {"downloaded_file": downloaded_file, "screenshot": screenshot}
-    """
+
     raise NotImplementedError(
         f"Job '{CONFIG['job_name']}' needs developer implementation. "
         f"See docstring above for user requirements and example code."
