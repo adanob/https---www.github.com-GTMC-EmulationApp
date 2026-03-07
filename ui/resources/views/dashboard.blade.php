@@ -704,6 +704,22 @@
           data.suggested_url || null,
           data.has_saved_creds || false
         );
+
+        // Auto-populate job name if provided
+        if (data.job_name) {
+          var nameInput = document.querySelector('#payloadForm [name="payload_name"]');
+          if (nameInput) {
+            nameInput.value = data.job_name + '_' + generateId();
+          }
+        }
+
+        // Auto-populate target URL if provided
+        if (data.target_url) {
+          var urlInput = document.getElementById('targetUrlInput');
+          if (urlInput && !urlInput.value) {
+            urlInput.value = data.target_url;
+          }
+        }
       })
       .catch(function() {});
   }
@@ -813,17 +829,11 @@
     if (scriptSel) {
       scriptSel.addEventListener('change', function() {
         var scriptVal = this.value;
-        if (scriptVal) {
-          var base = scriptVal.replace(/\.py$/, '');
-          var nameInput = form.querySelector('[name="payload_name"]');
-          var current = nameInput.value;
-          if (!current || current === 'my_job' || current.match(/^my_job_[a-z0-9]{5}$/) || current.match(/^.+_[a-z0-9]{5}$/)) {
-            nameInput.value = base + '_' + generateId();
-          }
-        }
         checkRunReady();
         analyseScript(this.value);
         fetchScriptContent(this.value);
+        // Note: Job name auto-population now happens in analyseScript()
+        // when the script config is loaded from the server
       });
     }
     checkRunReady();
