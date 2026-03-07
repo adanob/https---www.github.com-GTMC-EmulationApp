@@ -20,12 +20,8 @@ CONFIG = {
     "job_name": "{job_name}",
     "job_date": "{job_date}",
     "target_url": "{target_url}",
-    "tokens": {
-{tokens_dict}
-    },
-    "credentials": {
-{credentials_dict}
-    },
+    "tokens": {},
+    "credentials": {},
     "status": "AWAITING_DEVELOPER",
     "developer_notes": "This job needs navigation script implementation"
 }
