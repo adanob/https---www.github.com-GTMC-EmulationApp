@@ -508,15 +508,6 @@
   <div class="side-panel">
     <div class="log-panel-header">
       <div class="log-title">Job Log</div>
-      <div class="status-row">
-        <div class="status-badge blocked">⊘ BLOCKED</div>
-        <span class="env-label">Environment:</span>
-        <div class="env-pills">
-          <div class="env-pill dev">DEV</div>
-          <div class="env-pill qa">QA</div>
-          <div class="env-pill prod">PROD</div>
-        </div>
-      </div>
     </div>
 
     <div class="log-box">
