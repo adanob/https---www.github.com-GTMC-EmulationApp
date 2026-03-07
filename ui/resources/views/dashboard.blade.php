@@ -338,63 +338,39 @@
       <input type="hidden" name="payload_name" value="my_job_{{ substr(md5(uniqid()),0,5) }}">
       <input type="hidden" name="job_date" id="jobDateInput" value="{{ date('Y-m-d') }}">
 
-      <!-- Section 1: Job Details -->
+      <!-- Section 1: Navigation Script (MOVED TO TOP) -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">1</div>
-          <div class="section-title">Job Details</div>
-        </div>
-        <div class="field">
-          <label class="field-label">Job Name</label>
-          <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7" required>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-            This will create a file: <strong>jobs/{job_name}.py</strong>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label">Job Date</label>
-          <input type="date" name="job_date" id="jobDateInput" class="field-input" value="{{ date('Y-m-d') }}" required>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-            Tracks when this job was created
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label">Target URL</label>
-          <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login" required>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Section 2: Navigation Script -->
-      <div class="section">
-        <div class="section-header">
-          <div class="section-number">2</div>
           <div class="section-title">Navigation Script</div>
           <div class="section-subtitle">What should the automation do?</div>
         </div>
 
-        <div class="script-options">
+        <div class="script-options" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
           <div class="script-card active" id="cardExisting" onclick="switchMode('existing')">
             <div class="script-card-icon">📜</div>
-            <div class="script-card-title">Use Existing Script</div>
-            <div class="script-card-desc">Run a pre-built automation with your data</div>
+            <div class="script-card-title">Use Existing</div>
+            <div class="script-card-desc">Pre-built automation</div>
           </div>
           <div class="script-card" id="cardPageCast" onclick="switchMode('pagecast')">
             <div class="script-card-icon">🎥</div>
-            <div class="script-card-title">Record Navigation</div>
-            <div class="script-card-desc">Record yourself navigating the portal</div>
+            <div class="script-card-title">Record</div>
+            <div class="script-card-desc">Record navigation</div>
+          </div>
+          <div class="script-card" id="cardBuild" onclick="switchMode('build')">
+            <div class="script-card-icon">🔧</div>
+            <div class="script-card-title">Build Script</div>
+            <div class="script-card-desc">Developer handoff</div>
           </div>
         </div>
 
-        <!-- Explanation of what navigation scripts are - placed right after buttons -->
+        <!-- Explanation -->
         <div style="margin-top:12px; padding:12px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);">
           <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">
             💡 What is a navigation script?
           </div>
           <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-            A navigation script is a Python file that tells the automation how to navigate a specific website or portal.
-            Once uploaded, you can reuse it multiple times with different dates, credentials, or other parameters.
+            A navigation script tells the automation how to navigate a specific website. Upload an existing script, record your navigation, or build one with developer help.
           </div>
         </div>
 
@@ -523,6 +499,77 @@
               </ol>
             </div>
           </div>
+        </div>
+
+        <!-- Build Script Panel (Developer Handoff) -->
+        <div class="script-panel" id="panelBuild" style="display:none;">
+          <div style="background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px;">
+            <div style="text-align:center; margin-bottom:20px;">
+              <div style="font-size:48px; margin-bottom:12px;">🔧</div>
+              <div style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+                Build Script with Developer
+              </div>
+              <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; max-width:500px; margin:0 auto;">
+                Don't have a script yet? Fill out your requirements below and generate a configuration file.
+                A developer will use this to build the navigation script for you.
+              </div>
+            </div>
+
+            <div style="padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px;">
+              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+                📝 What you'll provide:
+              </div>
+              <ul style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                <li>Target website URL</li>
+                <li>What data you need (tokens/parameters)</li>
+                <li>Login credentials (optional, encrypted)</li>
+                <li>Any specific requirements or notes</li>
+              </ul>
+            </div>
+
+            <div style="margin-top:16px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px;">
+              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+                🚀 What happens next:
+              </div>
+              <ol style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                <li>Fill in the details below (Section 2 & 3)</li>
+                <li>Click "Save for Developer" to generate config</li>
+                <li>Config saved with status: AWAITING_DEVELOPER</li>
+                <li>Developer implements navigation logic</li>
+                <li>Script status changes to: READY</li>
+                <li>You can then run it anytime!</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Section 2: Add Job Details (OPTIONAL - MOVED FROM TOP) -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-number">2</div>
+          <div class="section-title">Add Job Details</div>
+          <div class="section-subtitle" style="color:var(--text-muted); font-weight:400;">Optional · Overrides script defaults</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Job Name</label>
+          <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            This will create a file: <strong>jobs/{job_name}.py</strong>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Job Date</label>
+          <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            Tracks when this job was created
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Target URL</label>
+          <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login">
         </div>
       </div>
 
@@ -718,14 +765,20 @@
     currentMode = mode;
     document.getElementById('cardExisting').classList.toggle('active', mode === 'existing');
     document.getElementById('cardPageCast').classList.toggle('active', mode === 'pagecast');
+    document.getElementById('cardBuild').classList.toggle('active', mode === 'build');
     document.getElementById('panelExisting').style.display = mode === 'existing' ? 'block' : 'none';
     document.getElementById('panelPageCast').style.display = mode === 'pagecast' ? 'block' : 'none';
+    document.getElementById('panelBuild').style.display = mode === 'build' ? 'block' : 'none';
 
     if (mode !== 'existing') {
       hideScriptCues();
       document.getElementById('tokenTableWrap').style.display = 'none';
       showEmptyPreview();
     }
+
+    // Set developer mode flag for build mode
+    document.getElementById('devCheck').checked = (mode === 'build');
+
     checkRunReady();
   }
 
