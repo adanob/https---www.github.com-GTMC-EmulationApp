@@ -387,6 +387,17 @@
           </div>
         </div>
 
+        <!-- Explanation of what navigation scripts are - placed right after buttons -->
+        <div style="margin-top:12px; padding:12px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius);">
+          <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">
+            💡 What is a navigation script?
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+            A navigation script is a Python file that tells the automation how to navigate a specific website or portal.
+            Once uploaded, you can reuse it multiple times with different dates, credentials, or other parameters.
+          </div>
+        </div>
+
         <div class="script-panel" id="panelExisting">
           <!-- Show this when scripts are available -->
           <div id="scriptSelectionArea" style="display:{{ count($scripts) > 0 ? 'block' : 'none' }}">
@@ -463,16 +474,6 @@
                 <div style="font-size:12px; color:var(--text-muted);">
                   Accepts .py files only
                 </div>
-              </div>
-            </div>
-
-            <div style="margin-top:16px; padding:16px; background:var(--bg-input); border-radius:var(--radius);">
-              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
-                💡 What is a navigation script?
-              </div>
-              <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-                A navigation script is a Python file that tells the automation how to navigate a specific website or portal.
-                Once uploaded, you can reuse it multiple times with different dates, credentials, or other parameters.
               </div>
             </div>
 
