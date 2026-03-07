@@ -327,6 +327,7 @@
     <form id="payloadForm" method="POST" action="{{ route('payload.store') }}">
       @csrf
       <input type="hidden" name="payload_name" value="my_job_{{ substr(md5(uniqid()),0,5) }}">
+      <input type="hidden" name="job_date" id="jobDateInput" value="{{ date('Y-m-d') }}">
 
       <!-- Section 1: Job Details -->
       <div class="section">
@@ -336,11 +337,21 @@
         </div>
         <div class="field">
           <label class="field-label">Job Name</label>
-          <input type="text" name="payload_name" class="field-input" placeholder="e.g. availity_claims_download_a3b7c" required>
+          <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7" required>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            This will create a file: <strong>jobs/{job_name}.py</strong>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Job Date</label>
+          <input type="date" name="job_date" id="jobDateInput" class="field-input" value="{{ date('Y-m-d') }}" required>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            Tracks when this job was created
+          </div>
         </div>
         <div class="field">
           <label class="field-label">Target URL</label>
-          <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://apps.availity.com/..." required>
+          <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login" required>
         </div>
       </div>
 
@@ -351,33 +362,36 @@
         <div class="section-header">
           <div class="section-number">2</div>
           <div class="section-title">Navigation Script</div>
-          <div class="section-subtitle">How to navigate the website</div>
+          <div class="section-subtitle">What should the automation do?</div>
         </div>
 
         <div class="script-options">
           <div class="script-card active" id="cardExisting" onclick="switchMode('existing')">
             <div class="script-card-icon">📜</div>
             <div class="script-card-title">Use Existing Script</div>
-            <div class="script-card-desc">Select a pre-built navigation script</div>
+            <div class="script-card-desc">Run a pre-built automation with your data</div>
           </div>
           <div class="script-card" id="cardPageCast" onclick="switchMode('pagecast')">
             <div class="script-card-icon">🎥</div>
-            <div class="script-card-title">Record with PageCast</div>
-            <div class="script-card-desc">Record your navigation live</div>
+            <div class="script-card-title">Record Navigation</div>
+            <div class="script-card-desc">Record yourself navigating the portal</div>
           </div>
         </div>
 
         <div class="script-panel" id="panelExisting">
           <div class="field">
-            <label class="field-label">Select Script</label>
+            <label class="field-label">Select Base Script</label>
             <select id="scriptSelect" name="navigation_script" class="field-select">
-              <option value="">-- Choose a script --</option>
+              <option value="">-- Choose a pre-built script --</option>
               @foreach($scripts as $script)
                 <option value="{{ $script }}" {{ old('navigation_script') == $script ? 'selected' : '' }}>
                   {{ $script }}
                 </option>
               @endforeach
             </select>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              💡 Your job will <strong>import</strong> this script and run it with your configuration
+            </div>
           </div>
 
           <div id="scriptCues" style="display:none; margin-top:14px;">
@@ -407,7 +421,7 @@
 
           <div class="upload-inline" onclick="document.getElementById('hiddenFileInput').click()">
             <input type="file" id="hiddenFileInput" accept=".py,.json" onchange="handleInlineFileSelect(this)">
-            <div id="inlineUploadText">Or <strong>upload a .py script</strong> or <strong>.json config</strong></div>
+            <div id="inlineUploadText">Or <strong>upload a .py script</strong> to add it to the library</div>
             <button type="button" id="inlineUploadBtn" class="upload-inline-btn" onclick="event.stopPropagation(); doInlineUpload()">Upload Now</button>
           </div>
         </div>
@@ -450,21 +464,46 @@
 
       <div class="divider"></div>
 
-      <!-- Section 4: Developer Handoff -->
+      <!-- Section 4: What Happens Next -->
       <div class="section">
         <div class="section-header">
           <div class="section-number">4</div>
-          <div class="section-title">Developer Handoff</div>
+          <div class="section-title">What Happens Next?</div>
         </div>
+
         <label class="developer-check">
           <input type="checkbox" id="devCheck" name="is_developer_config">
           <div class="developer-check-box"></div>
-          <span>I'm creating this configuration for a developer</span>
+          <span>This portal doesn't have a script yet - create config for developer</span>
         </label>
+
         <div id="devMsg" class="developer-msg" style="display:none;">
-          <div class="developer-msg-icon">💡</div>
+          <div class="developer-msg-icon">👨‍💻</div>
           <div class="developer-msg-body">
-            <strong>Developer mode:</strong> Your configuration will be saved as a JSON file that developers can use to build custom scripts. The job won't run automatically.
+            <strong>Developer Handoff Mode</strong><br>
+            Your configuration will be saved as <code>jobs/{job_name}.py</code> containing:
+            <ul style="margin:8px 0 0 20px; font-size:12px; line-height:1.6;">
+              <li>All your settings in a CONFIG dictionary</li>
+              <li>A placeholder navigate() function</li>
+              <li>Instructions for the developer</li>
+              <li>Status: AWAITING_DEVELOPER</li>
+            </ul>
+            The job won't run until a developer implements the navigation logic.
+          </div>
+        </div>
+
+        <div id="runMsg" class="developer-msg" style="display:flex; background:var(--green-bg); border-color:var(--green-border);">
+          <div class="developer-msg-icon">🚀</div>
+          <div class="developer-msg-body">
+            <strong>Ready to Run</strong><br>
+            Your configuration will be saved as <code>jobs/{job_name}.py</code> containing:
+            <ul style="margin:8px 0 0 20px; font-size:12px; line-height:1.6;">
+              <li>All your settings in a CONFIG dictionary</li>
+              <li>Import statement for the base script</li>
+              <li>A navigate() function that runs the base script</li>
+              <li>Status: READY</li>
+            </ul>
+            The job will run immediately when you click "Run Job".
           </div>
         </div>
       </div>
@@ -477,7 +516,7 @@
           <span>🗑</span> Clear
         </button>
         <button type="submit" class="save-btn">
-          <span>💾</span> Save Job
+          <span>💾</span> <span id="saveButtonText">Save Config</span>
         </button>
         <button type="button" id="runJobBtn" class="run-btn" disabled onclick="alert('Run job clicked')">
           <span>▶</span> Run Job
@@ -485,7 +524,7 @@
       </div>
       <div class="btn-helpers-3">
         <div class="btn-helper"></div>
-        <div id="saveHelper" class="btn-helper">Saves your job configuration to jobs/</div>
+        <div id="saveHelper" class="btn-helper">Creates jobs/{job_name}.py with your configuration</div>
         <div id="runJobHelper" class="btn-helper warning">Missing: Job Name, Navigation Script</div>
       </div>
 
@@ -762,7 +801,9 @@
   }
 
   document.getElementById('devCheck').addEventListener('change', function() {
-    document.getElementById('devMsg').style.display = this.checked ? 'flex' : 'none';
+    var isDevMode = this.checked;
+    document.getElementById('devMsg').style.display = isDevMode ? 'flex' : 'none';
+    document.getElementById('runMsg').style.display = isDevMode ? 'none' : 'flex';
     checkRunReady();
   });
 
@@ -772,6 +813,7 @@
     var helper = document.getElementById('runJobHelper');
     var lhelp  = document.getElementById('launchJobHelper');
     var saveH  = document.getElementById('saveHelper');
+    var saveBtn = document.getElementById('saveButtonText');
     var form   = document.getElementById('payloadForm');
     if (!form || !btn) return;
 
@@ -790,14 +832,18 @@
     }
 
     if (devChecked) {
-      disableBoth('Save your configuration, then share it with your developer');
-      saveH.textContent = 'Saves configuration for developer handoff';
+      disableBoth('Save configuration, then share jobs/' + (nameVal || '{job_name}') + '.py with developer');
+      saveH.textContent = 'Creates jobs/' + (nameVal || '{job_name}') + '.py with status AWAITING_DEVELOPER';
       saveH.className = 'btn-helper ready';
+      if (saveBtn) saveBtn.textContent = 'Save for Developer';
       return;
     }
+
+    if (saveBtn) saveBtn.textContent = 'Save & Run';
+
     if (currentMode === 'pagecast') {
       disableBoth('Record your navigation with PageCast first');
-      saveH.textContent = 'Saves your job configuration to jobs/';
+      saveH.textContent = 'Creates jobs/' + (nameVal || '{job_name}') + '.py';
       saveH.className = 'btn-helper';
       return;
     }
@@ -808,15 +854,16 @@
 
     if (missing.length > 0) {
       disableBoth('Missing: ' + missing.join(', '));
+      saveH.textContent = 'Creates jobs/' + (nameVal || '{job_name}') + '.py';
     } else {
       btn.disabled = false;
       if (lbtn) lbtn.disabled = false;
       helper.textContent = 'Runs headless in background';
       helper.className = 'btn-helper ready';
       if (lhelp) { lhelp.textContent = 'Downloads .bat — opens browser on your screen'; lhelp.className = 'btn-helper ready'; }
+      saveH.textContent = 'Creates jobs/' + nameVal + '.py and executes it immediately';
+      saveH.className = 'btn-helper ready';
     }
-    saveH.textContent = 'Saves your job configuration to jobs/';
-    saveH.className = 'btn-helper';
   }
 
   (function() {
