@@ -92,17 +92,52 @@ class EmulationController extends Controller
     {
         $baseScriptModule = pathinfo($baseScript, PATHINFO_FILENAME);
 
-        $template = file_get_contents(base_path('app/Templates/job_template_existing_script.py'));
+        // Format tokens and credentials as Python dict entries
+        $tokensFormatted = $this->formatPythonDict($tokens);
+        $credentialsFormatted = $this->formatPythonDict($credentials);
 
-        return strtr($template, [
-            '{job_name}' => $jobName,
-            '{job_date}' => $jobDate,
-            '{target_url}' => $targetUrl,
-            '{base_script}' => $baseScript,
-            '{base_script_module}' => $baseScriptModule,
-            '{tokens_dict}' => $this->formatPythonDict($tokens),
-            '{credentials_dict}' => $this->formatPythonDict($credentials),
-        ]);
+        // Use heredoc to generate content directly (no template file needed)
+        $content = <<<PYTHON
+"""
+USER JOB: {$jobName}
+Based on: {$baseScript}
+Created: {$jobDate}
+Status: READY
+"""
+
+CONFIG = {
+    "job_name": "{$jobName}",
+    "job_date": "{$jobDate}",
+    "target_url": "{$targetUrl}",
+    "base_script": "{$baseScript}",
+    "tokens": {
+{$tokensFormatted}
+    },
+    "credentials": {
+{$credentialsFormatted}
+    },
+    "status": "READY"
+}
+
+# Import the base navigation logic
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+from {$baseScriptModule} import navigate as base_navigate
+
+def navigate(context: dict) -> dict:
+    """Execute base script with user configuration"""
+    # Inject user's configuration into context
+    context["tokens"].update(CONFIG["tokens"])
+    context["target_url"] = CONFIG["target_url"]
+    if CONFIG["credentials"]:
+        context["credentials"] = CONFIG["credentials"]
+
+    # Call the base navigation script
+    return base_navigate(context)
+PYTHON;
+
+        return $content;
     }
 
     /**
@@ -110,18 +145,97 @@ class EmulationController extends Controller
      */
     private function generateDeveloperHandoffJob($jobName, $jobDate, $targetUrl, $tokens, $credentials)
     {
-        $template = file_get_contents(base_path('app/Templates/job_template_developer_handoff.py'));
+        // Format tokens and credentials as Python dict entries
+        $tokenList = empty($tokens) ? 'none specified' : implode(', ', array_keys($tokens));
+        $tokensFormatted = $this->formatPythonDict($tokens);
+        $credentialsFormatted = $this->formatPythonDict($credentials);
 
-        $tokenList = implode(', ', array_keys($tokens));
+        // Use heredoc to generate content directly (no template file needed)
+        $content = <<<PYTHON
+"""
+USER-CREATED JOB CONFIGURATION
+Job Name: {$jobName}
+Created: {$jobDate}
+Status: AWAITING_DEVELOPER
 
-        return strtr($template, [
-            '{job_name}' => $jobName,
-            '{job_date}' => $jobDate,
-            '{target_url}' => $targetUrl,
-            '{token_list}' => $tokenList,
-            '{tokens_dict}' => $this->formatPythonDict($tokens),
-            '{credentials_dict}' => $this->formatPythonDict($credentials),
-        ]);
+Instructions for Developer:
+This configuration was created by a user who needs automation for this portal.
+Please implement the navigation logic in the navigate() function below.
+
+User Requirements:
+- Target: {$targetUrl}
+- Tokens needed: {$tokenList}
+- Credentials: Saved and encrypted in CONFIG below
+
+Once implemented, change status to "READY" and test the job.
+"""
+
+CONFIG = {
+    "job_name": "{$jobName}",
+    "job_date": "{$jobDate}",
+    "target_url": "{$targetUrl}",
+    "tokens": {
+{$tokensFormatted}
+    },
+    "credentials": {
+{$credentialsFormatted}
+    },
+    "status": "AWAITING_DEVELOPER",
+    "developer_notes": "This job needs navigation script implementation"
+}
+
+def navigate(context: dict) -> dict:
+    """
+    PLACEHOLDER: Developer needs to implement navigation logic
+
+    Expected behavior:
+    1. Login to {$targetUrl}
+    2. Navigate to the appropriate section
+    3. Use tokens from CONFIG to filter/configure
+    4. Download files or capture screenshots
+    5. Return results
+
+    Available in context:
+    - helper: BrowserHelper (helper.go, helper.click, helper.type_text, etc.)
+    - tokens: User's token values (merged from CONFIG)
+    - credentials: User's username/password
+    - logger: JobLogger (logger.info, logger.success, logger.error)
+    - target_url: The URL to navigate to
+
+    Example implementation:
+
+        helper = context["helper"]
+        tokens = context["tokens"]
+        creds = context["credentials"]
+        logger = context["logger"]
+
+        # Navigate to login
+        helper.go(context["target_url"])
+        helper.wait_for_page_load()
+
+        # Login
+        helper.type_text('//input[@id="username"]', creds["username"])
+        helper.type_text('//input[@id="password"]', creds["password"])
+        helper.click('//button[@type="submit"]')
+        helper.wait_for_page_load()
+        logger.success("Login successful")
+
+        # Use tokens to complete task
+        # ... your navigation logic here ...
+
+        # Take screenshot
+        screenshot = helper.screenshot()
+        logger.info("Screenshot captured", screenshot)
+
+        return {"screenshot": screenshot}
+    """
+    raise NotImplementedError(
+        f"Job '{CONFIG['job_name']}' needs developer implementation. "
+        f"See docstring above for user requirements and example code."
+    )
+PYTHON;
+
+        return $content;
     }
 
     /**
@@ -129,16 +243,20 @@ class EmulationController extends Controller
      */
     private function formatPythonDict($array)
     {
-        if (empty($array)) {
-            return '';
+        // Ensure it's an array and not empty
+        if (!is_array($array) || empty($array)) {
+            return '';  // Return empty string (braces come from heredoc)
         }
 
         $pairs = [];
         foreach ($array as $key => $value) {
-            $escapedValue = str_replace('"', '\\"', $value);
+            // Escape quotes and backslashes for Python string
+            $escapedValue = addslashes($value);
+            // 8 spaces indentation (2 levels deep: 4 for dict + 4 for CONFIG)
             $pairs[] = "        \"{$key}\": \"{$escapedValue}\"";
         }
 
+        // Return just the key-value pairs (no outer braces)
         return implode(",\n", $pairs);
     }
 
