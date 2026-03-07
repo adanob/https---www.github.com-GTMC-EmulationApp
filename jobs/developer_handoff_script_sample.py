@@ -16,19 +16,19 @@ User Requirements:
 Once implemented, change status to "READY" and test the job.
 """
 
-CONFIG = {{
+CONFIG = {
     "job_name": "{job_name}",
     "job_date": "{job_date}",
     "target_url": "{target_url}",
-    "tokens": {{
+    "tokens": {
 {tokens_dict}
-    }},
-    "credentials": {{
+    },
+    "credentials": {
 {credentials_dict}
-    }},
+    },
     "status": "AWAITING_DEVELOPER",
     "developer_notes": "This job needs navigation script implementation"
-}}
+}
 
 def navigate(context: dict) -> dict:
     """
@@ -73,9 +73,9 @@ def navigate(context: dict) -> dict:
         screenshot = helper.screenshot()
         logger.info("Screenshot captured", screenshot)
 
-        return {{"screenshot": screenshot}}
+        return {"screenshot": screenshot}
     """
     raise NotImplementedError(
-        f"Job '{{CONFIG['job_name']}}' needs developer implementation. "
+        f"Job '{CONFIG['job_name']}' needs developer implementation. "
         f"See docstring above for user requirements and example code."
     )
