@@ -125,12 +125,12 @@ class EmulationController extends Controller
     }
 
     /**
-     * Format PHP array as Python dictionary
+     * Format PHP array as Python dictionary entries (without outer braces)
      */
     private function formatPythonDict($array)
     {
         if (empty($array)) {
-            return '{}';
+            return '';
         }
 
         $pairs = [];
@@ -139,7 +139,7 @@ class EmulationController extends Controller
             $pairs[] = "        \"{$key}\": \"{$escapedValue}\"";
         }
 
-        return "{\n" . implode(",\n", $pairs) . "\n    }";
+        return implode(",\n", $pairs);
     }
 
     /**
