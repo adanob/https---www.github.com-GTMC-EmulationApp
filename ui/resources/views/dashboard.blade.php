@@ -336,6 +336,13 @@
     .layout { grid-template-columns:1fr; }
     .side-panel { border-left:none; border-top:1px solid var(--border); }
   }
+
+  @media (max-width:768px) {
+    /* Stack info columns on mobile/tablet */
+    .info-grid-2col {
+      grid-template-columns:1fr !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -515,42 +522,46 @@
             <!-- Divider -->
             <div style="border-top:1px solid var(--amber-border); margin:20px 0;"></div>
 
-            <!-- What you'll provide -->
-            <div style="margin-bottom:20px;">
-              <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:10px;">
-                📝 What you'll provide:
+            <!-- Two-column app-style layout -->
+            <div class="info-grid-2col" style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+
+              <!-- Left column: What you'll provide -->
+              <div style="background:rgba(217,119,6,0.08); border:1px solid var(--amber-border); border-radius:8px; padding:16px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                  <div style="font-size:20px;">📝</div>
+                  <div style="font-size:14px; font-weight:600; color:var(--text-primary);">What you'll provide</div>
+                </div>
+                <ul style="margin:0; padding-left:20px; font-size:12px; color:var(--text-secondary); line-height:1.8;">
+                  <li>Target website URL</li>
+                  <li>What data you need (tokens/parameters)</li>
+                  <li>Login credentials (optional, encrypted)</li>
+                  <li>Any specific requirements or notes</li>
+                </ul>
               </div>
-              <ul style="margin:0; padding-left:20px; font-size:13px; color:var(--text-secondary); line-height:1.8;">
-                <li>Target website URL</li>
-                <li>What data you need (tokens/parameters)</li>
-                <li>Login credentials (optional, encrypted)</li>
-                <li>Any specific requirements or notes</li>
-              </ul>
+
+              <!-- Right column: What happens next -->
+              <div style="background:rgba(217,119,6,0.08); border:1px solid var(--amber-border); border-radius:8px; padding:16px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                  <div style="font-size:20px;">🚀</div>
+                  <div style="font-size:14px; font-weight:600; color:var(--text-primary);">What happens next</div>
+                </div>
+                <ol style="margin:0; padding-left:20px; font-size:12px; color:var(--text-secondary); line-height:1.8;">
+                  <li>Fill in the details below (Section 2 & 3)</li>
+                  <li>Click "Save for Developer" to generate config</li>
+                  <li>Config saved with status: AWAITING_DEVELOPER</li>
+                  <li>Developer implements navigation logic</li>
+                  <li>Script status changes to: READY</li>
+                  <li>You can then run it anytime!</li>
+                </ol>
+              </div>
+
             </div>
 
-            <!-- Divider -->
-            <div style="border-top:1px solid var(--amber-border); margin:20px 0;"></div>
+            <!-- Divider before form sections -->
+            <div style="border-top:1px solid var(--amber-border); margin-bottom:24px;"></div>
 
-            <!-- What happens next -->
-            <div>
-              <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:10px;">
-                🚀 What happens next:
-              </div>
-              <ol style="margin:0; padding-left:20px; font-size:13px; color:var(--text-secondary); line-height:1.8;">
-                <li>Fill in the details below (Section 2 & 3)</li>
-                <li>Click "Save for Developer" to generate config</li>
-                <li>Config saved with status: AWAITING_DEVELOPER</li>
-                <li>Developer implements navigation logic</li>
-                <li>Script status changes to: READY</li>
-                <li>You can then run it anytime!</li>
-              </ol>
-            </div>
-
-            <!-- Divider -->
-            <div style="border-top:1px solid var(--amber-border); margin:24px 0;"></div>
-
-            <!-- Section 2: Add Job Details (inside amber panel, darker background) -->
-            <div style="background:rgba(217,119,6,0.15); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px; margin-bottom:20px;">
+            <!-- Section 2: Add Job Details (inside amber panel, darker background, compact) -->
+            <div style="background:rgba(217,119,6,0.15); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px;">
               <div class="section-header" style="margin-bottom:16px;">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
                   <div style="display:flex; align-items:center; gap:12px;">
@@ -560,46 +571,50 @@
                   <div style="font-size:12px; color:var(--text-muted); font-weight:400;">Optional · Overrides script defaults</div>
                 </div>
               </div>
-              <div class="field">
-                <label class="field-label">Job Name</label>
-                <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-                  This will create a file: <strong>jobs/{job_name}.py</strong>
+
+              <!-- Job Name and Job Date on same row -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="field" style="margin-bottom:0;">
+                  <label class="field-label">Job Name</label>
+                  <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                    This will create a file: <strong>jobs/{job_name}.py</strong>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                  <label class="field-label">Job Date</label>
+                  <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
+                  <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                    Tracks when this job was created
+                  </div>
                 </div>
               </div>
-              <div class="field">
-                <label class="field-label">Job Date</label>
-                <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
-                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-                  Tracks when this job was created
-                </div>
-              </div>
-              <div class="field">
+
+              <!-- Target URL -->
+              <div class="field" style="margin-bottom:16px;">
                 <label class="field-label">Target URL</label>
                 <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login">
               </div>
-            </div>
 
-            <!-- Section 3: Portal Credentials (inside amber panel, darker background) -->
-            <div style="background:rgba(217,119,6,0.15); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px;">
-              <div class="section-header" style="margin-bottom:16px;">
-                <div style="display:flex; align-items:center; justify-content:space-between;">
+              <!-- Portal Credentials directly under URL (no separate section) -->
+              <div style="border-top:1px solid var(--amber-border); margin:16px -20px 0; padding:20px 20px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
                   <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:28px; height:28px; background:var(--accent); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600;">3</div>
                     <div style="font-size:16px; font-weight:600; color:var(--text-primary);">Portal Credentials</div>
                   </div>
                   <div style="font-size:12px; color:var(--text-muted); font-weight:400;">Optional</div>
                 </div>
-              </div>
-              <div class="cred-row">
-                <div class="field">
-                  <label class="field-label">Username</label>
-                  <input type="text" name="username" class="field-input" placeholder="user@example.com">
-                </div>
-                <div class="field password-wrap">
-                  <label class="field-label">Password</label>
-                  <input type="password" name="password" class="field-input" placeholder="••••••••">
-                  <div class="encrypt-badge">🔒 ENCRYPTED</div>
+                <div class="cred-row">
+                  <div class="field">
+                    <label class="field-label">Username</label>
+                    <input type="text" name="username" class="field-input" placeholder="user@example.com">
+                  </div>
+                  <div class="field password-wrap">
+                    <label class="field-label">Password</label>
+                    <input type="password" name="password" class="field-input" placeholder="••••••••">
+                    <div class="encrypt-badge">🔒 ENCRYPTED</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -610,27 +625,33 @@
 
       <div class="divider"></div>
 
-      <!-- Section 2: Add Job Details (shown in non-build modes) -->
+      <!-- Section 2: Add Job Details (shown in non-build modes, compact layout) -->
       <div class="section" id="sectionJobDetails">
         <div class="section-header">
           <div class="section-number">2</div>
           <div class="section-title">Add Job Details</div>
           <div class="section-subtitle" style="color:var(--text-muted); font-weight:400;">Optional · Overrides script defaults</div>
         </div>
-        <div class="field">
-          <label class="field-label">Job Name</label>
-          <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-            This will create a file: <strong>jobs/{job_name}.py</strong>
+
+        <!-- Job Name and Job Date on same row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="field" style="margin-bottom:0;">
+            <label class="field-label">Job Name</label>
+            <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              This will create a file: <strong>jobs/{job_name}.py</strong>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label class="field-label">Job Date</label>
+            <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              Tracks when this job was created
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label class="field-label">Job Date</label>
-          <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
-          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
-            Tracks when this job was created
-          </div>
-        </div>
+
+        <!-- Target URL -->
         <div class="field">
           <label class="field-label">Target URL</label>
           <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login">
