@@ -303,6 +303,35 @@
     transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,119,182,0.15);
   }
 
+  /* Modal Styles */
+  .modal {
+    position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-overlay {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
+  }
+  .modal-content {
+    position:relative; background:var(--bg-secondary); border-radius:12px;
+    padding:32px; max-width:540px; width:90%; max-height:90vh; overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3); z-index:1;
+    animation:modalSlideIn 0.2s ease-out;
+  }
+  @keyframes modalSlideIn {
+    from { opacity:0; transform:translateY(-20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .modal-close {
+    position:absolute; top:16px; right:16px; width:32px; height:32px;
+    background:var(--bg-input); border:1px solid var(--border); border-radius:6px;
+    font-size:24px; line-height:1; cursor:pointer; color:var(--text-secondary);
+    transition:all 0.15s;
+  }
+  .modal-close:hover {
+    background:var(--red-bg); border-color:var(--red-border); color:var(--red);
+  }
+
   @media (max-width:1200px) {
     .layout { grid-template-columns:1fr; }
     .side-panel { border-left:none; border-top:1px solid var(--border); }
@@ -375,8 +404,9 @@
         </div>
 
         <div class="script-panel" id="panelExisting">
-          <!-- Show this when scripts are available -->
-          <div id="scriptSelectionArea" style="display:{{ count($scripts) > 0 ? 'block' : 'none' }}">
+          <!-- Only show content when scripts are available -->
+          @if(count($scripts) > 0)
+          <div id="scriptSelectionArea">
             <div class="field">
               <label class="field-label">Select Base Script</label>
               <select id="scriptSelect" name="navigation_script" class="field-select">
@@ -429,43 +459,8 @@
               </div>
             </div>
           </div>
-
-          <!-- Show this when NO scripts are available -->
-          <div id="noScriptsArea" style="display:{{ count($scripts) == 0 ? 'block' : 'none' }}">
-            <div style="background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px; text-align:center;">
-              <div style="font-size:32px; margin-bottom:12px;">📂</div>
-              <div style="font-size:15px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
-                No Scripts Available Yet
-              </div>
-              <div style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.5;">
-                To use an existing script, you'll need to upload one first.<br>
-                Upload a .py navigation script to get started.
-              </div>
-
-              <div class="upload-inline" onclick="document.getElementById('hiddenFileInputEmpty').click()" style="margin:0 auto; max-width:400px; cursor:pointer;">
-                <input type="file" id="hiddenFileInputEmpty" accept=".py" onchange="handleEmptyStateUpload(this)">
-                <div style="font-size:14px; font-weight:600; color:var(--accent); margin-bottom:8px;">
-                  📤 Click here to upload your first script
-                </div>
-                <div style="font-size:12px; color:var(--text-muted);">
-                  Accepts .py files only
-                </div>
-              </div>
-            </div>
-
-            <div style="margin-top:16px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
-              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
-                🚀 Alternative: Create a Config for Your Developer
-              </div>
-              <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-                Don't have a script yet? You can create a configuration file with your requirements,
-                then hand it off to a developer who will build the navigation script for you.
-              </div>
-              <button type="button" onclick="switchToDevMode()" style="padding:8px 16px; font-size:13px; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer;">
-                Switch to Developer Handoff Mode →
-              </button>
-            </div>
-          </div>
+          @endif
+          <!-- When no scripts: panel is empty, modal will appear via JavaScript -->
         </div>
 
         <div class="script-panel" id="panelPageCast" style="display:none;">
@@ -770,9 +765,26 @@
     document.getElementById('panelPageCast').style.display = mode === 'pagecast' ? 'block' : 'none';
     document.getElementById('panelBuild').style.display = mode === 'build' ? 'block' : 'none';
 
+    // If switching to existing mode, check if scripts are available
+    if (mode === 'existing') {
+      var scriptSelect = document.getElementById('scriptSelect');
+      // If no scriptSelect element, there are no scripts - show modal
+      if (!scriptSelect) {
+        showNoScriptsModal();
+      } else {
+        var hasScripts = scriptSelect.options.length > 1; // > 1 because of default option
+        if (!hasScripts) {
+          showNoScriptsModal();
+        }
+      }
+    }
+
     if (mode !== 'existing') {
       hideScriptCues();
-      document.getElementById('tokenTableWrap').style.display = 'none';
+      var tokenTable = document.getElementById('tokenTableWrap');
+      if (tokenTable) {
+        tokenTable.style.display = 'none';
+      }
       showEmptyPreview();
     }
 
@@ -780,6 +792,51 @@
     document.getElementById('devCheck').checked = (mode === 'build');
 
     checkRunReady();
+  }
+
+  function showNoScriptsModal() {
+    document.getElementById('noScriptsModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  }
+
+  function closeNoScriptsModal() {
+    document.getElementById('noScriptsModal').style.display = 'none';
+    document.body.style.overflow = ''; // Restore scrolling
+  }
+
+  function handleModalUpload(input) {
+    if (!input.files[0]) return;
+
+    var formData = new FormData();
+    formData.append('payload_file', input.files[0]);
+    formData.append('_token', document.querySelector('#payloadForm input[name="_token"]').value);
+
+    // Show uploading state in modal
+    var modal = document.getElementById('noScriptsModal');
+    var modalContent = modal.querySelector('.modal-content');
+    modalContent.innerHTML = '<div style="text-align:center; padding:60px;">' +
+      '<div style="font-size:48px; margin-bottom:16px;">📤</div>' +
+      '<div style="font-size:18px; font-weight:600; color:var(--accent);">Uploading script...</div>' +
+      '<div style="font-size:14px; color:var(--text-muted); margin-top:8px;">Please wait</div>' +
+      '</div>';
+
+    fetch('{{ route("payload.upload") }}', { method: 'POST', body: formData })
+      .then(function(r) {
+        if (r.redirected) {
+          window.location.href = r.url;
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(function(err) {
+        modalContent.innerHTML = '<div style="text-align:center; padding:60px; background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--radius);">' +
+          '<div style="font-size:48px; margin-bottom:16px;">❌</div>' +
+          '<div style="font-size:18px; font-weight:600; color:var(--red);">Upload failed</div>' +
+          '<div style="font-size:14px; color:var(--text-muted); margin-top:8px;">Please try again</div>' +
+          '<button onclick="closeNoScriptsModal()" style="margin-top:20px; padding:10px 20px; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer;">Close</button>' +
+          '</div>';
+        console.error('Upload error:', err);
+      });
   }
 
   function generateId() {
@@ -915,39 +972,6 @@
     }
   }
 
-  function handleEmptyStateUpload(input) {
-    if (!input.files[0]) return;
-
-    // Immediately show uploading state
-    var noScriptsArea = document.getElementById('noScriptsArea');
-    noScriptsArea.innerHTML = '<div style="text-align:center; padding:40px;">' +
-      '<div style="font-size:32px; margin-bottom:12px;">📤</div>' +
-      '<div style="font-size:15px; font-weight:600; color:var(--accent);">Uploading script...</div>' +
-      '<div style="font-size:13px; color:var(--text-muted); margin-top:8px;">Please wait</div>' +
-      '</div>';
-
-    var formData = new FormData();
-    formData.append('payload_file', input.files[0]);
-    formData.append('_token', document.querySelector('#payloadForm input[name="_token"]').value);
-
-    fetch('{{ route("payload.upload") }}', { method: 'POST', body: formData })
-      .then(function(r) {
-        if (r.redirected) {
-          window.location.href = r.url;
-        } else {
-          window.location.reload();
-        }
-      })
-      .catch(function(err) {
-        noScriptsArea.innerHTML = '<div style="text-align:center; padding:40px; background:var(--red-bg); border:1px solid var(--red-border); border-radius:var(--radius);">' +
-          '<div style="font-size:32px; margin-bottom:12px;">❌</div>' +
-          '<div style="font-size:15px; font-weight:600; color:var(--red);">Upload failed</div>' +
-          '<div style="font-size:13px; color:var(--text-muted); margin-top:8px;">Please try again</div>' +
-          '</div>';
-        console.error('Upload error:', err);
-      });
-  }
-
   function switchToDevMode() {
     // Check the developer checkbox
     document.getElementById('devCheck').checked = true;
@@ -1067,5 +1091,57 @@
     checkRunReady();
   })();
 </script>
+  <!-- Modal: No Scripts Available -->
+  <div id="noScriptsModal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeNoScriptsModal()"></div>
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeNoScriptsModal()">×</button>
+
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-size:48px; margin-bottom:12px;">📂</div>
+        <div style="font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+          No Scripts Available Yet
+        </div>
+        <div style="font-size:14px; color:var(--text-secondary); line-height:1.6;">
+          To use an existing script, you'll need to upload one first.<br>
+          Upload a .py navigation script to get started.
+        </div>
+      </div>
+
+      <div class="upload-inline" onclick="document.getElementById('modalFileInput').click()" style="margin:0 auto 24px; max-width:400px; cursor:pointer;">
+        <input type="file" id="modalFileInput" accept=".py" onchange="handleModalUpload(this)">
+        <div style="font-size:16px; font-weight:600; color:var(--accent); margin-bottom:8px;">
+          📤 Click here to upload your first script
+        </div>
+        <div style="font-size:13px; color:var(--text-muted);">
+          Accepts .py files only
+        </div>
+      </div>
+
+      <div style="padding:16px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+          💡 What is a navigation script?
+        </div>
+        <div style="font-size:13px; color:var(--text-muted); line-height:1.6;">
+          A navigation script is a Python file that tells the automation how to navigate a specific website or portal.
+          Once uploaded, you can reuse it multiple times with different dates, credentials, or other parameters.
+        </div>
+      </div>
+
+      <div style="padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
+        <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+          🚀 Alternative: Build Script with Developer
+        </div>
+        <div style="font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+          Don't have a script yet? You can create a configuration file with your requirements,
+          then hand it off to a developer who will build the navigation script for you.
+        </div>
+        <button type="button" onclick="closeNoScriptsModal(); switchMode('build');" style="padding:8px 16px; font-size:13px; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer;">
+          Switch to Build Script Mode →
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
