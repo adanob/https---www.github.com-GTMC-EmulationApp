@@ -1,0 +1,426 @@
+/**
+ * PageCast Recorder Engine v2.0
+ *
+ * Records user interactions and translates them into Python navigation scripts
+ * Features:
+ * - Click, type, scroll, select events
+ * - XPath generation for reliable element targeting
+ * - Token placeholder support
+ * - Smart element identification
+ * - Cross-page navigation tracking
+ */
+
+var $PageCastRecorder = new function() {
+    // Configuration
+    this.config = {
+        storageKey: 'pagecast_recording',
+        events: ['click', 'keyup', 'change', 'submit'],
+        ignoreClasses: ['pagecast-ignore', 'recorder-ui'],
+        captureInterval: 1000, // Auto-save every 1 second
+        maxActions: 1000 // Maximum actions to store
+    };
+
+    // State
+    this.recording = false;
+    this.paused = false;
+    this.actions = [];
+    this.sessionId = null;
+    this.startTime = null;
+    this.lastSaveTime = null;
+
+    /**
+     * Initialize and start recording
+     */
+    this.start = function(sessionId) {
+        if (this.recording) {
+            console.warn('Recording already in progress');
+            return;
+        }
+
+        this.sessionId = sessionId;
+        this.recording = true;
+        this.paused = false;
+        this.startTime = Date.now();
+        this.actions = [];
+
+        // Attach event listeners
+        this.config.events.forEach(eventType => {
+            document.addEventListener(eventType, this.handleEvent.bind(this), true);
+        });
+
+        // Track page navigation
+        window.addEventListener('beforeunload', this.handlePageUnload.bind(this));
+        window.addEventListener('popstate', this.handleNavigation.bind(this));
+
+        // Auto-save interval
+        this.saveInterval = setInterval(() => {
+            this.autoSave();
+        }, this.config.captureInterval);
+
+        console.log('PageCast Recorder started', { sessionId });
+        this.dispatchRecorderEvent('started');
+    };
+
+    /**
+     * Stop recording
+     */
+    this.stop = function() {
+        if (!this.recording) return;
+
+        this.recording = false;
+
+        // Remove event listeners
+        this.config.events.forEach(eventType => {
+            document.removeEventListener(eventType, this.handleEvent.bind(this), true);
+        });
+
+        clearInterval(this.saveInterval);
+
+        console.log('PageCast Recorder stopped', {
+            actions: this.actions.length,
+            duration: Date.now() - this.startTime
+        });
+
+        this.dispatchRecorderEvent('stopped', { actions: this.actions });
+        return this.actions;
+    };
+
+    /**
+     * Pause/Resume recording
+     */
+    this.togglePause = function() {
+        this.paused = !this.paused;
+        this.dispatchRecorderEvent(this.paused ? 'paused' : 'resumed');
+        return this.paused;
+    };
+
+    /**
+     * Handle DOM events
+     */
+    this.handleEvent = function(event) {
+        if (!this.recording || this.paused) return;
+        if (this.shouldIgnoreElement(event.target)) return;
+
+        const action = this.captureAction(event);
+        if (action) {
+            this.addAction(action);
+        }
+    };
+
+    /**
+     * Capture action data from event
+     */
+    this.captureAction = function(event) {
+        const target = event.target;
+        const actionType = this.getActionType(event);
+
+        if (!actionType) return null;
+
+        const action = {
+            id: this.generateId(),
+            type: actionType,
+            timestamp: Date.now() - this.startTime,
+            element: {
+                tag: target.tagName.toLowerCase(),
+                xpath: this.getXPath(target),
+                selector: this.getSelector(target),
+                attributes: this.getElementAttributes(target),
+                text: this.getElementText(target)
+            },
+            value: this.getEventValue(event),
+            url: window.location.href,
+            viewport: this.getViewportInfo()
+        };
+
+        return action;
+    };
+
+    /**
+     * Determine action type from event
+     */
+    this.getActionType = function(event) {
+        const type = event.type;
+        const tag = event.target.tagName.toLowerCase();
+
+        switch (type) {
+            case 'click':
+                if (tag === 'a') return 'click_link';
+                if (tag === 'button' || (tag === 'input' && event.target.type === 'submit')) {
+                    return 'click_button';
+                }
+                if (tag === 'input' && event.target.type === 'checkbox') return 'check';
+                if (tag === 'input' && event.target.type === 'radio') return 'select_radio';
+                return 'click';
+
+            case 'keyup':
+                if (tag === 'input' || tag === 'textarea') return 'type_text';
+                return null;
+
+            case 'change':
+                if (tag === 'select') return 'select_option';
+                if (tag === 'input' && event.target.type === 'file') return 'upload_file';
+                return 'change';
+
+            case 'submit':
+                return 'submit_form';
+
+            default:
+                return null;
+        }
+    };
+
+    /**
+     * Get XPath for element (most reliable selector)
+     */
+    this.getXPath = function(element) {
+        if (element.id) {
+            return `//*[@id="${element.id}"]`;
+        }
+
+        if (element.name) {
+            return `//${element.tagName.toLowerCase()}[@name="${element.name}"]`;
+        }
+
+        // Build XPath from document root
+        const parts = [];
+        let current = element;
+
+        while (current && current.nodeType === Node.ELEMENT_NODE) {
+            let index = 0;
+            let sibling = current.previousSibling;
+
+            // Count preceding siblings of same type
+            while (sibling) {
+                if (sibling.nodeType === Node.ELEMENT_NODE &&
+                    sibling.tagName === current.tagName) {
+                    index++;
+                }
+                sibling = sibling.previousSibling;
+            }
+
+            const tagName = current.tagName.toLowerCase();
+            const part = index > 0 ? `${tagName}[${index + 1}]` : tagName;
+            parts.unshift(part);
+
+            current = current.parentNode;
+        }
+
+        return '/' + parts.join('/');
+    };
+
+    /**
+     * Get CSS selector for element (backup method)
+     */
+    this.getSelector = function(element) {
+        if (element.id) {
+            return `#${element.id}`;
+        }
+
+        const classes = Array.from(element.classList)
+            .filter(c => !this.config.ignoreClasses.includes(c))
+            .join('.');
+
+        if (classes) {
+            return `${element.tagName.toLowerCase()}.${classes}`;
+        }
+
+        return element.tagName.toLowerCase();
+    };
+
+    /**
+     * Get element attributes
+     */
+    this.getElementAttributes = function(element) {
+        const attrs = {};
+        Array.from(element.attributes).forEach(attr => {
+            if (attr.name !== 'style') { // Exclude style for brevity
+                attrs[attr.name] = attr.value;
+            }
+        });
+        return attrs;
+    };
+
+    /**
+     * Get element text content (truncated)
+     */
+    this.getElementText = function(element) {
+        const text = element.textContent || element.value || '';
+        return text.trim().substring(0, 100);
+    };
+
+    /**
+     * Get event value
+     */
+    this.getEventValue = function(event) {
+        const target = event.target;
+
+        if (event.type === 'keyup' || event.type === 'change') {
+            if (target.type === 'password') {
+                return '***PASSWORD***'; // Don't record passwords
+            }
+            return target.value || '';
+        }
+
+        if (event.type === 'click') {
+            if (target.tagName === 'A') {
+                return target.href;
+            }
+            if (target.type === 'checkbox' || target.type === 'radio') {
+                return target.checked;
+            }
+        }
+
+        if (target.tagName.toLowerCase() === 'select') {
+            return target.options[target.selectedIndex]?.value || '';
+        }
+
+        return '';
+    };
+
+    /**
+     * Get viewport information
+     */
+    this.getViewportInfo = function() {
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            scrollX: window.pageXOffset,
+            scrollY: window.pageYOffset
+        };
+    };
+
+    /**
+     * Check if element should be ignored
+     */
+    this.shouldIgnoreElement = function(element) {
+        // Ignore if element or any parent has ignore class
+        let current = element;
+        while (current) {
+            if (current.classList) {
+                const hasIgnoreClass = this.config.ignoreClasses.some(cls =>
+                    current.classList.contains(cls)
+                );
+                if (hasIgnoreClass) return true;
+            }
+            current = current.parentElement;
+        }
+        return false;
+    };
+
+    /**
+     * Add action to recording
+     */
+    this.addAction = function(action) {
+        // Avoid duplicate actions (e.g., multiple keyup events)
+        const lastAction = this.actions[this.actions.length - 1];
+        if (lastAction && this.isDuplicate(lastAction, action)) {
+            // Update the last action instead of adding duplicate
+            this.actions[this.actions.length - 1] = action;
+        } else {
+            this.actions.push(action);
+        }
+
+        // Trim if exceeds max
+        if (this.actions.length > this.config.maxActions) {
+            this.actions.shift();
+        }
+
+        // Dispatch event for UI update
+        this.dispatchRecorderEvent('action-recorded', action);
+    };
+
+    /**
+     * Check if action is duplicate
+     */
+    this.isDuplicate = function(action1, action2) {
+        if (action1.type !== action2.type) return false;
+        if (action1.element.xpath !== action2.element.xpath) return false;
+        if (action1.type === 'type_text') {
+            // For typing, consider it duplicate if within 500ms
+            return (action2.timestamp - action1.timestamp) < 500;
+        }
+        return false;
+    };
+
+    /**
+     * Handle page navigation
+     */
+    this.handleNavigation = function(event) {
+        this.addAction({
+            id: this.generateId(),
+            type: 'navigate',
+            timestamp: Date.now() - this.startTime,
+            url: window.location.href,
+            value: window.location.href
+        });
+    };
+
+    /**
+     * Handle page unload
+     */
+    this.handlePageUnload = function(event) {
+        this.stop();
+    };
+
+    /**
+     * Auto-save actions
+     */
+    this.autoSave = function() {
+        if (this.actions.length > 0) {
+            this.dispatchRecorderEvent('auto-save', {
+                actions: this.actions,
+                count: this.actions.length
+            });
+        }
+    };
+
+    /**
+     * Dispatch custom event
+     */
+    this.dispatchRecorderEvent = function(eventName, data = {}) {
+        const event = new CustomEvent('pagecast-' + eventName, {
+            detail: data
+        });
+        window.dispatchEvent(event);
+    };
+
+    /**
+     * Generate unique ID
+     */
+    this.generateId = function() {
+        return 'action_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    };
+
+    /**
+     * Get all recorded actions
+     */
+    this.getActions = function() {
+        return this.actions;
+    };
+
+    /**
+     * Clear all recorded actions
+     */
+    this.clearActions = function() {
+        this.actions = [];
+        this.dispatchRecorderEvent('cleared');
+    };
+
+    /**
+     * Export actions as JSON
+     */
+    this.exportActions = function() {
+        return JSON.stringify({
+            sessionId: this.sessionId,
+            startTime: this.startTime,
+            duration: Date.now() - this.startTime,
+            url: window.location.href,
+            actions: this.actions
+        }, null, 2);
+    };
+};
+
+// Export for use
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = $PageCastRecorder;
+}
