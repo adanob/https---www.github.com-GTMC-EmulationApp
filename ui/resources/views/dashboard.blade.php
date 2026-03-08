@@ -498,23 +498,29 @@
 
         <!-- Build Script Panel (Developer Handoff) -->
         <div class="script-panel" id="panelBuild" style="display:none;">
-          <div style="background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px;">
+          <div style="background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius); padding:24px;">
+
+            <!-- Header -->
             <div style="text-align:center; margin-bottom:20px;">
               <div style="font-size:48px; margin-bottom:12px;">🔧</div>
-              <div style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+              <div style="font-size:18px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
                 Build Script with Developer
               </div>
-              <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; max-width:500px; margin:0 auto;">
+              <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; max-width:520px; margin:0 auto;">
                 Don't have a script yet? Fill out your requirements below and generate a configuration file.
                 A developer will use this to build the navigation script for you.
               </div>
             </div>
 
-            <div style="padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px;">
-              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--amber-border); margin:20px 0;"></div>
+
+            <!-- What you'll provide -->
+            <div style="margin-bottom:20px;">
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:10px;">
                 📝 What you'll provide:
               </div>
-              <ul style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+              <ul style="margin:0; padding-left:20px; font-size:13px; color:var(--text-secondary); line-height:1.8;">
                 <li>Target website URL</li>
                 <li>What data you need (tokens/parameters)</li>
                 <li>Login credentials (optional, encrypted)</li>
@@ -522,11 +528,15 @@
               </ul>
             </div>
 
-            <div style="margin-top:16px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px;">
-              <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--amber-border); margin:20px 0;"></div>
+
+            <!-- What happens next -->
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:10px;">
                 🚀 What happens next:
               </div>
-              <ol style="margin:0; padding-left:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+              <ol style="margin:0; padding-left:20px; font-size:13px; color:var(--text-secondary); line-height:1.8;">
                 <li>Fill in the details below (Section 2 & 3)</li>
                 <li>Click "Save for Developer" to generate config</li>
                 <li>Config saved with status: AWAITING_DEVELOPER</li>
@@ -535,6 +545,7 @@
                 <li>You can then run it anytime!</li>
               </ol>
             </div>
+
           </div>
         </div>
       </div>
@@ -1128,15 +1139,15 @@
         </div>
       </div>
 
-      <div style="padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);">
-        <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">
-          🚀 Alternative: Build Script with Developer
+      <div style="padding:20px; background:var(--amber-bg); border:1px solid var(--amber-border); border-radius:var(--radius);">
+        <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+          🔧 Alternative: Build Script with Developer
         </div>
-        <div style="font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-          Don't have a script yet? You can create a configuration file with your requirements,
+        <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:14px;">
+          Don't have a script yet? Create a configuration file with your requirements,
           then hand it off to a developer who will build the navigation script for you.
         </div>
-        <button type="button" onclick="closeNoScriptsModal(); switchMode('build');" style="padding:8px 16px; font-size:13px; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer;">
+        <button type="button" onclick="closeNoScriptsModal(); switchMode('build');" style="padding:10px 18px; font-size:13px; font-weight:600; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; transition:all 0.15s;">
           Switch to Build Script Mode →
         </button>
       </div>
