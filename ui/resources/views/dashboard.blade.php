@@ -546,14 +546,72 @@
               </ol>
             </div>
 
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--amber-border); margin:24px 0;"></div>
+
+            <!-- Section 2: Add Job Details (inside amber panel, darker background) -->
+            <div style="background:rgba(217,119,6,0.15); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px; margin-bottom:20px;">
+              <div class="section-header" style="margin-bottom:16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:28px; height:28px; background:var(--accent); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600;">2</div>
+                    <div style="font-size:16px; font-weight:600; color:var(--text-primary);">Add Job Details</div>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); font-weight:400;">Optional · Overrides script defaults</div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Job Name</label>
+                <input type="text" name="payload_name" class="field-input" placeholder="e.g. amp_downloads_march7">
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                  This will create a file: <strong>jobs/{job_name}.py</strong>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Job Date</label>
+                <input type="date" name="job_date" class="field-input" value="{{ date('Y-m-d') }}">
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                  Tracks when this job was created
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Target URL</label>
+                <input type="url" id="targetUrlInput" name="target_url" class="field-input" placeholder="https://portal.example.com/login">
+              </div>
+            </div>
+
+            <!-- Section 3: Portal Credentials (inside amber panel, darker background) -->
+            <div style="background:rgba(217,119,6,0.15); border:1px solid var(--amber-border); border-radius:var(--radius); padding:20px;">
+              <div class="section-header" style="margin-bottom:16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:28px; height:28px; background:var(--accent); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600;">3</div>
+                    <div style="font-size:16px; font-weight:600; color:var(--text-primary);">Portal Credentials</div>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); font-weight:400;">Optional</div>
+                </div>
+              </div>
+              <div class="cred-row">
+                <div class="field">
+                  <label class="field-label">Username</label>
+                  <input type="text" name="username" class="field-input" placeholder="user@example.com">
+                </div>
+                <div class="field password-wrap">
+                  <label class="field-label">Password</label>
+                  <input type="password" name="password" class="field-input" placeholder="••••••••">
+                  <div class="encrypt-badge">🔒 ENCRYPTED</div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
 
       <div class="divider"></div>
 
-      <!-- Section 2: Add Job Details (OPTIONAL - MOVED FROM TOP) -->
-      <div class="section">
+      <!-- Section 2: Add Job Details (shown in non-build modes) -->
+      <div class="section" id="sectionJobDetails">
         <div class="section-header">
           <div class="section-number">2</div>
           <div class="section-title">Add Job Details</div>
@@ -581,8 +639,8 @@
 
       <div class="divider"></div>
 
-      <!-- Section 3: Credentials -->
-      <div class="section">
+      <!-- Section 3: Credentials (shown in non-build modes) -->
+      <div class="section" id="sectionCredentials">
         <div class="section-header">
           <div class="section-number">3</div>
           <div class="section-title">Portal Credentials</div>
@@ -775,6 +833,20 @@
     document.getElementById('panelExisting').style.display = mode === 'existing' ? 'block' : 'none';
     document.getElementById('panelPageCast').style.display = mode === 'pagecast' ? 'block' : 'none';
     document.getElementById('panelBuild').style.display = mode === 'build' ? 'block' : 'none';
+
+    // Show/hide standalone sections based on mode
+    // In Build mode, sections are inside the amber panel
+    // In other modes, show standalone sections
+    var showStandaloneSections = (mode !== 'build');
+    var jobDetailsSection = document.getElementById('sectionJobDetails');
+    var credentialsSection = document.getElementById('sectionCredentials');
+
+    if (jobDetailsSection) {
+      jobDetailsSection.style.display = showStandaloneSections ? 'block' : 'none';
+    }
+    if (credentialsSection) {
+      credentialsSection.style.display = showStandaloneSections ? 'block' : 'none';
+    }
 
     // If switching to existing mode, check if scripts are available
     if (mode === 'existing') {
