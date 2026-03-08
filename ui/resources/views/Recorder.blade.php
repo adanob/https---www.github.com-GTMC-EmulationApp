@@ -10,7 +10,7 @@
 
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        
+
         :root {
             --primary: #0077B6;
             --primary-dark: #005F8C;
@@ -41,7 +41,7 @@
         }
 
         .topbar-left { display: flex; align-items: center; gap: 16px; }
-        
+
         .logo {
             font-size: 18px;
             font-weight: 700;
@@ -308,7 +308,7 @@
             <!-- Session Setup -->
             <div class="card">
                 <div class="card-header">📋 Session Setup</div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Session Name</label>
                     <input type="text" class="form-input" id="sessionName" placeholder="e.g., amp_portal_login">
@@ -348,7 +348,7 @@
             <!-- Recording Controls -->
             <div class="card" style="margin-top:24px; display:none;" id="recordingControls">
                 <div class="card-header">🎮 Recording Controls</div>
-                
+
                 <button class="btn btn-danger" onclick="stopRecording()" style="width:100%; margin-bottom:12px;">
                     ⏹ Stop Recording
                 </button>
@@ -375,7 +375,7 @@
             <!-- Browser Preview -->
             <div class="card">
                 <div class="card-header">🌐 Browser Preview</div>
-                
+
                 <div id="previewContainer">
                     <div class="empty-state">
                         <div class="empty-icon">🎬</div>
@@ -387,7 +387,7 @@
             <!-- Recorded Actions -->
             <div class="card" style="margin-top:24px;">
                 <div class="card-header">📝 Recorded Actions</div>
-                
+
                 <div class="actions-list" id="actionsList">
                     <div class="empty-state">
                         <div class="empty-icon">📋</div>
@@ -424,7 +424,7 @@ async function startRecording() {
     }
 
     try {
-        const response = await fetch('/recorder/start-session', {
+        const response = await fetch('/emulation/recorder/start-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -485,15 +485,15 @@ function loadPreview(url) {
 function injectRecorderScript(iframe) {
     try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        
+
         // Create recorder script
         const script = iframeDoc.createElement('script');
         script.textContent = `
             ${getRecorderScript()}
-            
+
             // Start recorder
             $Recorder.start();
-            
+
             // Send actions to parent window
             window.addEventListener('action-recorded', function(e) {
                 window.parent.postMessage({
@@ -502,7 +502,7 @@ function injectRecorderScript(iframe) {
                 }, '*');
             });
         `;
-        
+
         iframeDoc.body.appendChild(script);
         console.log('Recorder script injected');
     } catch (error) {
@@ -518,7 +518,7 @@ window.addEventListener('message', function(event) {
         recordedActions.push(action);
         updateActionsList();
         updateActionCount();
-        
+
         // Auto-save actions every 5 actions
         if (recordedActions.length % 5 === 0) {
             saveActions();
@@ -531,7 +531,7 @@ async function stopRecording() {
     if (!currentSession) return;
 
     recordingActive = false;
-    
+
     // Save final actions
     await saveActions();
 
@@ -548,7 +548,7 @@ async function stopRecording() {
 function pauseRecording() {
     recordingPaused = !recordingPaused;
     const btn = document.getElementById('btnPause');
-    
+
     if (recordingPaused) {
         btn.textContent = '▶ Resume';
         btn.className = 'btn btn-success';
@@ -565,7 +565,7 @@ async function saveActions() {
     if (!currentSession || recordedActions.length === 0) return;
 
     try {
-        await fetch('/recorder/save-actions', {
+        await fetch('/emulation/recorder/save-actions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -576,7 +576,7 @@ async function saveActions() {
                 actions: recordedActions
             })
         });
-        
+
         console.log('Actions saved');
     } catch (error) {
         console.error('Error saving actions:', error);
@@ -596,7 +596,7 @@ async function generateScript() {
     await saveTokens();
 
     try {
-        const response = await fetch('/recorder/generate-script', {
+        const response = await fetch('/emulation/recorder/generate-script', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -619,10 +619,10 @@ async function generateScript() {
                     scriptPath: data.script_path
                 }, window.location.origin);
             }
-            
+
             // Show success message
             alert(`Script generated successfully: ${data.script_name}\n\nYou can now close this window or continue recording.`);
-            
+
             // Optionally redirect to dashboard
             if (confirm('Script generated! Go to dashboard now?')) {
                 window.location.href = '/emulation';
@@ -637,7 +637,7 @@ async function generateScript() {
 // Update actions list UI
 function updateActionsList() {
     const list = document.getElementById('actionsList');
-    
+
     if (recordedActions.length === 0) {
         list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No actions recorded yet</p></div>';
         return;
@@ -671,7 +671,7 @@ function addToken() {
     tokenCounter++;
     const container = document.getElementById('tokensContainer');
     const tokenId = 'token_' + tokenCounter;
-    
+
     const tokenRow = document.createElement('div');
     tokenRow.className = 'token-row';
     tokenRow.id = tokenId;
@@ -686,7 +686,7 @@ function addToken() {
             🗑️
         </button>
     `;
-    
+
     container.appendChild(tokenRow);
 }
 
@@ -705,14 +705,14 @@ async function saveTokens() {
         const tokenId = input.dataset.tokenKey;
         const valueInput = document.querySelector(`[data-token-value="${tokenId}"]`);
         const value = valueInput ? valueInput.value.trim() : '';
-        
+
         if (key && value) {
             tokens[key] = value;
         }
     });
 
     try {
-        await fetch('/recorder/save-tokens', {
+        await fetch('/emulation/recorder/save-tokens', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -740,13 +740,13 @@ function getRecorderScript() {
     return `
         var $Recorder = new function() {
             this.events = ['click', 'keyup'];
-            
+
             this.start = function() {
                 this.events.forEach(event => {
                     document.addEventListener(event, this.handleEvent.bind(this));
                 });
             };
-            
+
             this.handleEvent = function(event) {
                 const action = {
                     ai_action: event.type,
@@ -754,11 +754,11 @@ function getRecorderScript() {
                     ai_value: this.getValue(event),
                     timestamp: new Date().toISOString()
                 };
-                
+
                 const customEvent = new CustomEvent('action-recorded', { detail: action });
                 window.dispatchEvent(customEvent);
             };
-            
+
             this.getElementHTML = function(element) {
                 const attrs = Array.from(element.attributes)
                     .filter(attr => attr.name !== 'style')
@@ -766,7 +766,7 @@ function getRecorderScript() {
                     .join(' ');
                 return '<' + element.tagName.toLowerCase() + ' ' + attrs + '>';
             };
-            
+
             this.getValue = function(event) {
                 if (event.type === 'keyup') {
                     return event.target.value || '';
