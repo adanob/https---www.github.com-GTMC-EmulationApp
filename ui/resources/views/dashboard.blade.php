@@ -343,6 +343,29 @@
       grid-template-columns:1fr !important;
     }
   }
+
+  /* Notification animations */
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
 </style>
 </head>
 <body>
@@ -483,7 +506,7 @@
               </div>
             </div>
 
-            <button type="button" class="pagecast-launch-btn" style="margin:0 auto; display:flex;" onclick="alert('PageCast recording will launch here')">
+            <button type="button" class="pagecast-launch-btn" style="margin:0 auto; display:flex;" onclick="launchPageCastRecorder()">
               <span>🎥</span> Launch PageCast Recorder
             </button>
 
@@ -896,6 +919,62 @@
     document.getElementById('devCheck').checked = (mode === 'build');
 
     checkRunReady();
+  }
+
+  // Launch PageCast Recorder
+  function launchPageCastRecorder() {
+    // Open recorder in new window/tab
+    const recorderUrl = '/emulation/recorder';
+    const recorderWindow = window.open(
+      recorderUrl,
+      'PageCastRecorder',
+      'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no'
+    );
+
+    if (recorderWindow) {
+      recorderWindow.focus();
+
+      // Show confirmation message
+      showNotification('PageCast Recorder launched! Record your navigation and generate a script.', 'success');
+
+      // Optional: Listen for completion message from recorder
+      window.addEventListener('message', function(event) {
+        if (event.data.type === 'recorder-complete' && event.data.scriptName) {
+          showNotification('Script "' + event.data.scriptName + '" generated! Refreshing script list...', 'success');
+          // Reload page to show new script in dropdown
+          setTimeout(() => window.location.reload(), 2000);
+        }
+      });
+    } else {
+      alert('Unable to open recorder. Please allow pop-ups for this site.');
+    }
+  }
+
+  // Show notification helper
+  function showNotification(message, type) {
+    // Simple notification - you can replace with your toast/notification system
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'success' ? '#10B981' : '#EF4444'};
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      max-width: 400px;
+      font-size: 14px;
+      animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => notification.remove(), 300);
+    }, 5000);
   }
 
   function showNoScriptsModal() {
