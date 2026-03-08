@@ -5,60 +5,28 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Str;
-use Database\Models\AutodProcessors;
 
 /**
  * Class PageCastRecorderController
  * @package App\Http\Controllers
- * 
+ *
  * Manages PageCast navigation recording sessions and script generation
  */
 class PageCastRecorderController extends Controller
 {
     /**
-     * Submenu configuration
-     */
-    protected $submenu = [
-        'title' => 'PageCast Recorder',
-        'items' => [
-            'Record' => [
-                'link' => '/emulation/recorder',
-                'active' => false
-            ],
-            'Sessions' => [
-                'link' => '/emulation/recorder/sessions',
-                'active' => false
-            ],
-            'Scripts' => [
-                'link' => '/emulation/recorder/scripts',
-                'active' => false
-            ]
-        ]
-    ];
-
-    /**
      * Show recorder interface
      */
     public function index(Request $request)
     {
-        $this->submenu['items']['Record']['active'] = true;
-        
-        // Get list of processors for target selection
-        $processors = AutodProcessors::where('enabled', 'Y')
-            ->where('instance_id', 8) // Lambda only
-            ->orderBy('name')
-            ->get();
-
+        // Simple version without processors
         $activeSessions = $this->getActiveSessions();
         $recentSessions = $this->getRecentSessions(5);
 
-        return view('emulation/recorder/index', [
-            'submenu' => $this->submenu,
-            'processors' => $processors,
+        return view('recorder', [
             'activeSessions' => $activeSessions,
             'recentSessions' => $recentSessions
         ]);
@@ -69,12 +37,9 @@ class PageCastRecorderController extends Controller
      */
     public function sessions(Request $request)
     {
-        $this->submenu['items']['Sessions']['active'] = true;
-        
         $sessions = $this->getAllSessions();
 
-        return view('emulation/recorder/sessions', [
-            'submenu' => $this->submenu,
+        return view('recorder-sessions', [
             'sessions' => $sessions
         ]);
     }
@@ -84,12 +49,9 @@ class PageCastRecorderController extends Controller
      */
     public function scripts(Request $request)
     {
-        $this->submenu['items']['Scripts']['active'] = true;
-        
         $scripts = $this->getGeneratedScripts();
 
-        return view('emulation/recorder/scripts', [
-            'submenu' => $this->submenu,
+        return view('recorder-scripts', [
             'scripts' => $scripts
         ]);
     }
@@ -102,7 +64,6 @@ class PageCastRecorderController extends Controller
         $request->validate([
             'session_name' => 'required|string|max:255',
             'target_url' => 'required|url',
-            'processor_id' => 'nullable|integer',
             'description' => 'nullable|string'
         ]);
 
@@ -111,10 +72,8 @@ class PageCastRecorderController extends Controller
             'id' => $sessionId,
             'name' => $request->session_name,
             'target_url' => $request->target_url,
-            'processor_id' => $request->processor_id,
             'description' => $request->description,
             'created_at' => now()->toIso8601String(),
-            'created_by' => $request->user()->id ?? null,
             'status' => 'recording',
             'actions' => [],
             'tokens' => [],
@@ -125,6 +84,11 @@ class PageCastRecorderController extends Controller
             ]
         ];
 
+        // Create directory if it doesn't exist
+        if (!Storage::disk('local')->exists('recorder/sessions')) {
+            Storage::disk('local')->makeDirectory('recorder/sessions');
+        }
+
         // Store session in storage/app/recorder/sessions/
         Storage::disk('local')->put(
             "recorder/sessions/{$sessionId}.json",
@@ -133,8 +97,7 @@ class PageCastRecorderController extends Controller
 
         Log::info("PageCast recording session started", [
             'session_id' => $sessionId,
-            'name' => $request->session_name,
-            'user_id' => $request->user()->id ?? null
+            'name' => $request->session_name
         ]);
 
         return Response::json([
@@ -155,7 +118,7 @@ class PageCastRecorderController extends Controller
         ]);
 
         $sessionPath = "recorder/sessions/{$request->session_id}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -164,7 +127,7 @@ class PageCastRecorderController extends Controller
         }
 
         $session = json_decode(Storage::disk('local')->get($sessionPath), true);
-        
+
         // Append new actions
         $session['actions'] = array_merge($session['actions'] ?? [], $request->actions);
         $session['updated_at'] = now()->toIso8601String();
@@ -190,7 +153,7 @@ class PageCastRecorderController extends Controller
         ]);
 
         $sessionPath = "recorder/sessions/{$request->session_id}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -228,7 +191,7 @@ class PageCastRecorderController extends Controller
         ]);
 
         $sessionPath = "recorder/sessions/{$request->session_id}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -237,7 +200,7 @@ class PageCastRecorderController extends Controller
         }
 
         $session = json_decode(Storage::disk('local')->get($sessionPath), true);
-        
+
         // Encrypt sensitive credentials
         $session['credentials'] = [
             'username' => $request->username,
@@ -264,7 +227,7 @@ class PageCastRecorderController extends Controller
         ]);
 
         $sessionPath = "recorder/sessions/{$request->session_id}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -303,7 +266,7 @@ class PageCastRecorderController extends Controller
         ]);
 
         $sessionPath = "recorder/sessions/{$request->session_id}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -312,11 +275,16 @@ class PageCastRecorderController extends Controller
         }
 
         $session = json_decode(Storage::disk('local')->get($sessionPath), true);
-        
+
         try {
             // Generate Python script content
             $scriptContent = $this->buildPythonScript($session, $request->script_name);
-            
+
+            // Create scripts directory if it doesn't exist
+            if (!Storage::disk('local')->exists('scripts')) {
+                Storage::disk('local')->makeDirectory('scripts');
+            }
+
             // Save to storage/app/scripts/
             $scriptFilename = Str::slug($request->script_name) . '.py';
             Storage::disk('local')->put("scripts/{$scriptFilename}", $scriptContent);
@@ -326,11 +294,6 @@ class PageCastRecorderController extends Controller
             $session['generated_script'] = $scriptFilename;
             $session['completed_at'] = now()->toIso8601String();
             Storage::disk('local')->put($sessionPath, json_encode($session, JSON_PRETTY_PRINT));
-
-            // Create processor entry if processor_id is set
-            if (isset($session['processor_id']) && $session['processor_id']) {
-                $this->createProcessorEntry($session, $scriptFilename);
-            }
 
             Log::info("Navigation script generated", [
                 'session_id' => $request->session_id,
@@ -364,7 +327,7 @@ class PageCastRecorderController extends Controller
     public function getSession(Request $request, $sessionId): JsonResponse
     {
         $sessionPath = "recorder/sessions/{$sessionId}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -386,7 +349,7 @@ class PageCastRecorderController extends Controller
     public function deleteSession(Request $request, $sessionId): JsonResponse
     {
         $sessionPath = "recorder/sessions/{$sessionId}.json";
-        
+
         if (!Storage::disk('local')->exists($sessionPath)) {
             return Response::json([
                 'success' => false,
@@ -410,6 +373,11 @@ class PageCastRecorderController extends Controller
     private function getActiveSessions()
     {
         $sessions = [];
+
+        if (!Storage::disk('local')->exists('recorder/sessions')) {
+            return $sessions;
+        }
+
         $files = Storage::disk('local')->files('recorder/sessions');
 
         foreach ($files as $file) {
@@ -428,6 +396,11 @@ class PageCastRecorderController extends Controller
     private function getRecentSessions($limit = 10)
     {
         $sessions = [];
+
+        if (!Storage::disk('local')->exists('recorder/sessions')) {
+            return $sessions;
+        }
+
         $files = Storage::disk('local')->files('recorder/sessions');
 
         foreach ($files as $file) {
@@ -449,6 +422,11 @@ class PageCastRecorderController extends Controller
     private function getAllSessions()
     {
         $sessions = [];
+
+        if (!Storage::disk('local')->exists('recorder/sessions')) {
+            return $sessions;
+        }
+
         $files = Storage::disk('local')->files('recorder/sessions');
 
         foreach ($files as $file) {
@@ -470,6 +448,11 @@ class PageCastRecorderController extends Controller
     private function getGeneratedScripts()
     {
         $scripts = [];
+
+        if (!Storage::disk('local')->exists('scripts')) {
+            return $scripts;
+        }
+
         $files = Storage::disk('local')->files('scripts');
 
         foreach ($files as $file) {
@@ -502,79 +485,60 @@ class PageCastRecorderController extends Controller
         $tokens = $session['tokens'] ?? [];
         $targetUrl = $session['target_url'] ?? '';
         $description = $session['description'] ?? 'Recorded navigation script';
-        
-        $script = $this->getPythonScriptTemplate();
-        
-        // Replace placeholders
-        $script = str_replace('{SCRIPT_NAME}', $scriptName, $script);
-        $script = str_replace('{DESCRIPTION}', $description, $script);
-        $script = str_replace('{TARGET_URL}', $targetUrl, $script);
-        $script = str_replace('{GENERATED_DATE}', date('Y-m-d H:i:s'), $script);
-        $script = str_replace('{TOKENS_DICT}', $this->formatPythonDict($tokens), $script);
-        $script = str_replace('{NAVIGATION_LOGIC}', $this->generateNavigationLogic($actions, $tokens), $script);
-        
-        return $script;
-    }
 
-    /**
-     * Get Python script template
-     */
-    private function getPythonScriptTemplate(): string
-    {
-        $lines = [
-            '"""',
-            '{SCRIPT_NAME}',
-            '{DESCRIPTION}',
-            '',
-            'Generated by PageCast Recorder on {GENERATED_DATE}',
-            'Status: READY',
-            '"""',
-            '',
-            'CONFIG = {',
-            '    "script_name": "{SCRIPT_NAME}",',
-            '    "target_url": "{TARGET_URL}",',
-            '    "tokens": {TOKENS_DICT},',
-            '    "status": "READY"',
-            '}',
-            '',
-            'def navigate(context: dict) -> dict:',
-            '    """',
-            '    Navigate to {TARGET_URL} and perform recorded actions.',
-            '    ',
-            '    Args:',
-            '        context: Contains helper, tokens, credentials, logger, target_url',
-            '    ',
-            '    Returns:',
-            '        dict: Results including screenshots, data extracted',
-            '    """',
-            '    helper = context["helper"]',
-            '    tokens = context["tokens"]',
-            '    credentials = context.get("credentials", {})',
-            '    logger = context["logger"]',
-            '    ',
-            '    # Initialize results',
-            '    results = {',
-            '        "status": "in_progress",',
-            '        "screenshots": [],',
-            '        "data": {}',
-            '    }',
-            '    ',
-            '    try:',
-            '{NAVIGATION_LOGIC}',
-            '        ',
-            '        # Mark as completed',
-            '        results["status"] = "completed"',
-            '        logger.info("Navigation completed successfully")',
-            '        ',
-            '    except Exception as e:',
-            '        logger.error(f"Navigation failed: {str(e)}")',
-            '        results["status"] = "failed"',
-            '        results["error"] = str(e)',
-            '        raise',
-            '    ',
-            '    return results',
-        ];
-        
+        $lines = [];
+        $lines[] = '"""';
+        $lines[] = $scriptName;
+        $lines[] = $description;
+        $lines[] = '';
+        $lines[] = 'Generated by PageCast Recorder on ' . date('Y-m-d H:i:s');
+        $lines[] = 'Status: READY';
+        $lines[] = '"""';
+        $lines[] = '';
+        $lines[] = 'CONFIG = {';
+        $lines[] = '    "script_name": "' . $scriptName . '",';
+        $lines[] = '    "target_url": "' . $targetUrl . '",';
+        $lines[] = '    "tokens": ' . $this->formatPythonDict($tokens) . ',';
+        $lines[] = '    "status": "READY"';
+        $lines[] = '}';
+        $lines[] = '';
+        $lines[] = 'def navigate(context: dict) -> dict:';
+        $lines[] = '    """';
+        $lines[] = '    Navigate to ' . $targetUrl . ' and perform recorded actions.';
+        $lines[] = '    ';
+        $lines[] = '    Args:';
+        $lines[] = '        context: Contains helper, tokens, credentials, logger, target_url';
+        $lines[] = '    ';
+        $lines[] = '    Returns:';
+        $lines[] = '        dict: Results including screenshots, data extracted';
+        $lines[] = '    """';
+        $lines[] = '    helper = context["helper"]';
+        $lines[] = '    tokens = context["tokens"]';
+        $lines[] = '    credentials = context.get("credentials", {})';
+        $lines[] = '    logger = context["logger"]';
+        $lines[] = '    ';
+        $lines[] = '    # Initialize results';
+        $lines[] = '    results = {';
+        $lines[] = '        "status": "in_progress",';
+        $lines[] = '        "screenshots": [],';
+        $lines[] = '        "data": {}';
+        $lines[] = '    }';
+        $lines[] = '    ';
+        $lines[] = '    try:';
+        $lines[] = $this->generateNavigationLogic($actions, $tokens);
+        $lines[] = '        ';
+        $lines[] = '        # Mark as completed';
+        $lines[] = '        results["status"] = "completed"';
+        $lines[] = '        logger.info("Navigation completed successfully")';
+        $lines[] = '        ';
+        $lines[] = '    except Exception as e:';
+        $lines[] = '        logger.error(f"Navigation failed: {str(e)}")';
+        $lines[] = '        results["status"] = "failed"';
+        $lines[] = '        results["error"] = str(e)';
+        $lines[] = '        raise';
+        $lines[] = '    ';
+        $lines[] = '    return results';
+
         return implode("\n", $lines);
     }
 
@@ -597,7 +561,7 @@ class PageCastRecorderController extends Controller
             $type = $action['type'] ?? '';
             $xpath = $action['element']['xpath'] ?? '';
             $value = $action['value'] ?? '';
-            
+
             $logic .= "        # Step " . ($index + 1) . ": {$type}\n";
 
             switch ($type) {
@@ -609,7 +573,6 @@ class PageCastRecorderController extends Controller
                     break;
 
                 case 'type_text':
-                    // Check if value matches a token
                     $tokenKey = $this->findTokenKey($value, $tokens);
                     if ($tokenKey) {
                         $logic .= "        helper.type_text('{$xpath}', tokens['{$tokenKey}'], clear_first=True)\n";
@@ -677,27 +640,5 @@ class PageCastRecorderController extends Controller
             }
         }
         return null;
-    }
-
-    /**
-     * Create processor entry for generated script
-     */
-    private function createProcessorEntry($session, $scriptFilename)
-    {
-        // This would integrate with your autod_processors table
-        // Implementation depends on your exact database structure
-        try {
-            $processor = AutodProcessors::find($session['processor_id']);
-            if ($processor) {
-                $processor->emulator_file = $scriptFilename;
-                $processor->updated_date = now();
-                $processor->save();
-            }
-        } catch (\Exception $e) {
-            Log::warning("Failed to update processor entry", [
-                'processor_id' => $session['processor_id'],
-                'error' => $e->getMessage()
-            ]);
-        }
     }
 }
