@@ -35,10 +35,22 @@ class EmulationController extends Controller
     public function store(Request $request)
     {
         $jobName = $request->input('payload_name');
+
+        // If no payload_name provided, generate one
+        if (empty($jobName)) {
+            $jobName = 'job_' . substr(md5(uniqid()), 0, 8);
+}
         $jobDate = $request->input('job_date', date('Y-m-d'));
         $targetUrl = $request->input('target_url');
         $baseScript = $request->input('navigation_script'); // from dropdown
         $isDeveloperMode = $request->input('is_developer_config', false);
+
+        // Validate: must have either a base script OR be in developer mode
+        if (empty($baseScript) && !$isDeveloperMode) {
+            return back()->withErrors([
+                'error' => 'Please select a navigation script or use Build Script mode'
+            ])->withInput();
+        }
 
         // Collect tokens
         $tokens = [];
@@ -81,7 +93,7 @@ class EmulationController extends Controller
         Storage::disk('local')->put($jobPath, $jobContent);
 
         return redirect()
-            ->route('payload.show', $jobName)
+            ->route('payload.show', ['name' => $jobName])
             ->with('success', 'Job created successfully');
     }
 
