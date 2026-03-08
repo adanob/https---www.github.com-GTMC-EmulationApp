@@ -90,6 +90,18 @@ class EmulationController extends Controller
      */
     private function generateUserJob($jobName, $jobDate, $targetUrl, $baseScript, $tokens, $credentials)
     {
+        // Validate that base script exists
+        $scriptPath = Storage::disk('local')->path("scripts/{$baseScript}");
+        if (!file_exists($scriptPath)) {
+            throw new \Exception("Base script not found: scripts/{$baseScript}");
+        }
+
+        // Validate that script has a navigate function (basic check)
+        $scriptContent = file_get_contents($scriptPath);
+        if (!preg_match('/def\s+navigate\s*\(/', $scriptContent)) {
+            throw new \Exception("Base script '{$baseScript}' does not have a 'navigate' function");
+        }
+
         $baseScriptModule = pathinfo($baseScript, PATHINFO_FILENAME);
 
         // Read template file
